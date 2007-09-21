@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
+   <description url="http://hudson-eclipse.googlecode.com/svn/trunk/hudson-update">
+      Update site for the Hudson plugin
+   </description>
    <feature url="features/dk.contix.eclipse.hudson_1.0.1.jar" id="dk.contix.eclipse.hudson" version="1.0.1">
       <category name="dk.contix.eclipse.hudson"/>
    </feature>
