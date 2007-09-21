@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Hudson Plug-in for Eclipse
+Bundle-SymbolicName: dk.contix.eclipse.hudson;singleton:=true
+Bundle-Version: 1.0.1
+Bundle-Activator: dk.contix.eclipse.hudson.Activator
+Bundle-Vendor: Contix Technologies
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.ui.forms,
+ org.eclipse.ui.workbench.texteditor
+Eclipse-LazyStart: true
