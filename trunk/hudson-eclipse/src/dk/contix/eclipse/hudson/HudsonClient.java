@@ -20,16 +20,16 @@ import org.xml.sax.SAXException;
  * Class for accessing the Hudson server.
  * 
  * @author Joakim Recht
- *
+ * 
  */
 public class HudsonClient {
-	
+
 	private Preferences prefs;
 
 	public HudsonClient() {
 		prefs = Activator.getDefault().getPluginPreferences();
 	}
-	
+
 	private String getBase() {
 		return prefs.getString(Activator.PREF_BASE_URL);
 	}
@@ -39,14 +39,14 @@ public class HudsonClient {
 			URL u = new URL(getBase() + "/api/xml");
 			InputStream is = u.openStream();
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
-			
+
 			Element root = doc.getDocumentElement();
 			NodeList jobNodes = root.getElementsByTagName("job");
-			
+
 			Job[] res = new Job[jobNodes.getLength()];
 			for (int i = 0; i < res.length; i++) {
 				Element jobNode = (Element) jobNodes.item(i);
-				
+
 				String name = getNodeValue(jobNode, "name");
 				String url = getNodeValue(jobNode, "url");
 				String last = getNodeValue(jobNode, "lastBuild");
@@ -56,9 +56,9 @@ public class HudsonClient {
 				}
 				res[i] = new Job(name, url, getNodeValue(jobNode, "color"), last);
 			}
-			
+
 			is.close();
-			
+
 			return res;
 		} catch (SAXException e) {
 			throw new RuntimeException(e);
@@ -66,7 +66,7 @@ public class HudsonClient {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	private String getBuildNumber(String name) throws IOException, SAXException, ParserConfigurationException {
 		URL u = new URL(getBase() + "/job/" + encode(name) + "/api/xml");
 		InputStream is = u.openStream();
@@ -81,10 +81,10 @@ public class HudsonClient {
 		}
 		return null;
 	}
-	
+
 	private String encode(String url) {
 		try {
-			return URLEncoder.encode(url, "UTF-8");
+			return URLEncoder.encode(url, "UTF-8").replaceAll("\\+", "%20");
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
@@ -101,7 +101,7 @@ public class HudsonClient {
 
 		connection.disconnect();
 	}
-	
+
 	public static void checkValidUrl(String base) throws Exception {
 		URL u = new URL(base + "/api/xml");
 		HttpURLConnection connection = (HttpURLConnection) u.openConnection();
