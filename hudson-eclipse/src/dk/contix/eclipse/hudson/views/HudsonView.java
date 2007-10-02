@@ -49,6 +49,7 @@ import dk.contix.eclipse.hudson.Job;
 import dk.contix.eclipse.hudson.JobContentProvider;
 import dk.contix.eclipse.hudson.views.actions.BuildStatusAction;
 import dk.contix.eclipse.hudson.views.actions.FilterAction;
+import dk.contix.eclipse.hudson.views.actions.FilterJobAction;
 import dk.contix.eclipse.hudson.views.actions.OpenPreferencesAction;
 import dk.contix.eclipse.hudson.views.actions.StatusFilter;
 
@@ -168,8 +169,18 @@ public class HudsonView extends ViewPart {
 		manager.add(new Separator());
 		manager.add(refreshAction);
 
+		makeFilterAction(manager);
+
 		// Other plug-ins can contribute there actions here
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
+	}
+
+	private void makeFilterAction(IMenuManager manager) {
+		IStructuredSelection sel = (IStructuredSelection) viewer.getSelection();
+		if (sel.size() == 1) {
+			Job j = (Job) sel.getFirstElement();
+			manager.add(new FilterJobAction("Ignore failed builds", "Do not report build errors for this project", j.getName()));
+		}
 	}
 
 	private void fillLocalToolBar(IToolBarManager manager) {

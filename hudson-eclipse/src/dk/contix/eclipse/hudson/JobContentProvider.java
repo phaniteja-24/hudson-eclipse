@@ -93,8 +93,10 @@ public class JobContentProvider implements IStructuredContentProvider {
 			check: {
 				for (int i = 0; i < newJobs.length; i++) {
 					if (newJobs[i].getColor().toLowerCase().equals(Job.BUILD_FAIL) || newJobs[i].getColor().toLowerCase().equals(Job.BUILD_TEST_FAIL)) {
-						action.setError(newJobs[i]);
-						break check;
+						if (!ignore(newJobs[i])) {
+							action.setError(newJobs[i]);
+							break check;
+						}
 					}
 				}
 				action.setOk();
@@ -117,12 +119,19 @@ public class JobContentProvider implements IStructuredContentProvider {
 	}
 
 	private boolean hasFailed(Job job) {
+		if (ignore(job)) {
+			return false;
+		}
 		for (int i = 0; i < jobs.length; i++) {
 			if (jobs[i].getName().equals(job.getName())) {
 				return job.getColor().toLowerCase().equals("red") && (jobs[i].getColor().toLowerCase().equals("blue") || jobs[i].getColor().toLowerCase().equals("blue_anime"));
 			}
 		}
 		return false;
+	}
+
+	private boolean ignore(Job job) {
+		return prefs.getBoolean(Activator.PREF_FILTER_IGNORE_PROJECT + "_" + job.getName());
 	}
 
 	public void dispose() {
