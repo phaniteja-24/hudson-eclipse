@@ -14,7 +14,7 @@ public class BuildStatusAction extends StatusLineContributionItem {
 	public BuildStatusAction() {
 		super(Activator.PLUGIN_ID + ".statusline");
 
-		setImage(Activator.getImageDescriptor("icons/hudson.png").createImage());
+		setImage(Activator.getImage("icons/hudson.png"));
 		setToolTipText("Hudson status");
 		
 		setActionHandler(new Action() {
@@ -29,17 +29,17 @@ public class BuildStatusAction extends StatusLineContributionItem {
 	}
 
 	public void setOk() {
-		setImage(Activator.getImageDescriptor("icons/blue.png").createImage());
+		setImage(Activator.getImage("icons/blue.png"));
 		setToolTipText("All builds ok");
 	}
 	
 	public void setUnknown() {
-		setImage(Activator.getImageDescriptor("icons/yellow.png").createImage());
+		setImage(Activator.getImage("icons/yellow.png"));
 		setToolTipText("Unknown status");
 	}
 	
 	public void setError(Job job) {
-		setImage(Activator.getImageDescriptor("icons/red.png").createImage());
+		setImage(Activator.getImage("icons/red.png"));
 		setToolTipText("Build error in " + job.getName());
 	}
 }

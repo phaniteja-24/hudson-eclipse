@@ -1,8 +1,12 @@
 package dk.contix.eclipse.hudson;
 
+import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.ImageRegistry;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
+import org.osgi.util.tracker.ServiceTracker;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -32,14 +36,21 @@ public class Activator extends AbstractUIPlugin {
 
 	public static final String PREF_FILTER_IGNORE_PROJECT = "filter_ignore_build";
 
+	public static final String PREF_SECURITY_TOKEN = "security_token";
+
 	// The shared instance
 	private static Activator plugin;
+
+	private ImageRegistry registry;
+
+	private ServiceTracker tracker;
 
 	/**
 	 * The constructor
 	 */
 	public Activator() {
 		plugin = this;
+		this.registry = new ImageRegistry();
 	}
 
 	/*
@@ -49,6 +60,9 @@ public class Activator extends AbstractUIPlugin {
 	 */
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
+
+		tracker = new ServiceTracker(getBundle().getBundleContext(), IProxyService.class.getName(), null);
+		tracker.open();
 	}
 
 	/*
@@ -58,6 +72,7 @@ public class Activator extends AbstractUIPlugin {
 	 */
 	public void stop(BundleContext context) throws Exception {
 		plugin = null;
+		tracker.close();
 		super.stop(context);
 	}
 
@@ -79,6 +94,29 @@ public class Activator extends AbstractUIPlugin {
 	 */
 	public static ImageDescriptor getImageDescriptor(String path) {
 		return imageDescriptorFromPlugin(PLUGIN_ID, path);
+	}
+
+	/**
+	 * Returns an image for the image file at the given plug-in relative path
+	 * 
+	 * @param path
+	 *            the path
+	 * @return the image
+	 */
+	public static Image getImage(String path) {
+		Image img = plugin.registry.get(path);
+		if (img == null) {
+			final ImageDescriptor desc = getImageDescriptor(path);
+			if (desc != null) {
+				img = desc.createImage(true);
+				plugin.registry.put(path, img);
+			}
+		}
+		return img;
+	}
+
+	public IProxyService getProxyService() {
+		return (IProxyService) tracker.getService();
 	}
 
 }

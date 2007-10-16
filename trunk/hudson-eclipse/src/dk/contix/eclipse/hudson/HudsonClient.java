@@ -3,13 +3,21 @@ package dk.contix.eclipse.hudson;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
+import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.runtime.Preferences;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -28,6 +36,7 @@ public class HudsonClient {
 
 	public HudsonClient() {
 		prefs = Activator.getDefault().getPluginPreferences();
+
 	}
 
 	private String getBase() {
@@ -35,10 +44,14 @@ public class HudsonClient {
 	}
 
 	public Job[] getJobs() throws IOException {
+		HttpClient client = getClient(getBase());
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "/api/xml");
+
 		try {
-			URL u = new URL(getBase() + "/api/xml");
-			InputStream is = u.openStream();
+			client.executeMethod(method);
+			InputStream is = method.getResponseBodyAsStream();
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+			is.close();
 
 			Element root = doc.getDocumentElement();
 			NodeList jobNodes = root.getElementsByTagName("job");
@@ -57,27 +70,30 @@ public class HudsonClient {
 				res[i] = new Job(name, url, getNodeValue(jobNode, "color"), last);
 			}
 
-			is.close();
-
 			return res;
 		} catch (SAXException e) {
 			throw new RuntimeException(e);
 		} catch (ParserConfigurationException e) {
 			throw new RuntimeException(e);
+		} finally {
+			method.releaseConnection();
 		}
 	}
 
 	private String getBuildNumber(String name) throws IOException, SAXException, ParserConfigurationException {
-		URL u = new URL(getBase() + "/job/" + encode(name) + "/api/xml");
-		InputStream is = u.openStream();
+		HttpClient client = getClient(getBase());
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "/job/" + encode(name) + "/api/xml");
 		try {
-			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+			client.executeMethod(method);
+			InputStream bodyStream = method.getResponseBodyAsStream();
+			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(bodyStream);
+			bodyStream.close();
 			NodeList els = doc.getElementsByTagName("lastBuild");
 			if (els.getLength() == 1) {
 				return getNodeValue((Element) els.item(0), "number");
 			}
 		} finally {
-			is.close();
+			method.releaseConnection();
 		}
 		return null;
 	}
@@ -91,31 +107,46 @@ public class HudsonClient {
 	}
 
 	public void scheduleJob(String project) throws IOException {
-		URL u = new URL(getBase() + "/job/" + encode(project) + "/build");
-		HttpURLConnection connection = (HttpURLConnection) u.openConnection();
-		connection.setAllowUserInteraction(false);
-		connection.setConnectTimeout(1000);
-		connection.setReadTimeout(1000);
-		connection.setInstanceFollowRedirects(false);
-		connection.getResponseCode();
+		HttpClient client = getClient(getBase());
+		String st = prefs.getString(Activator.PREF_SECURITY_TOKEN + "_" + project);
+		String token = "";
+		if (st != null && st.length() > 0) {
+			token = "?token=" + st;
+		}
 
-		connection.disconnect();
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "/job/" + encode(project) + "/build" + token);
+
+		try {
+			int res = client.executeMethod(method);
+			if (res == HttpStatus.SC_FORBIDDEN) {
+				throw new IOException("Scheduling failed, security token required");
+			}
+			method.getResponseBodyAsStream().close();
+		} finally {
+			method.releaseConnection();
+		}
 	}
 
-	public static void checkValidUrl(String base) throws Exception {
-		URL u = new URL(base + "/api/xml");
-		HttpURLConnection connection = (HttpURLConnection) u.openConnection();
-		connection.setAllowUserInteraction(false);
-		connection.setConnectTimeout(1000);
-		connection.setReadTimeout(1000);
-		connection.setInstanceFollowRedirects(false);
-		connection.getResponseCode();
+	public void checkValidUrl(String base) throws Exception {
 
-		Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(connection.getInputStream());
+		HttpClient client = getClient(base);
+		GetMethod method = new GetMethod(getRelativePath(base) + "/api/xml");
 
-		Element root = doc.getDocumentElement();
-		if (root.getChildNodes().getLength() == 0 || !root.getNodeName().equals("hudson")) {
-			throw new IllegalArgumentException("URL does not point to a valid Hudson installation. /api/xml does not return correct data.");
+		try {
+			client.executeMethod(client.getHostConfiguration(), method);
+			InputStream bodyStream = method.getResponseBodyAsStream();
+			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(bodyStream);
+			bodyStream.close();
+
+			Element root = doc.getDocumentElement();
+			if (root.getChildNodes().getLength() == 0 || !root.getNodeName().equals("hudson")) {
+				throw new IllegalArgumentException("URL does not point to a valid Hudson installation. /api/xml does not return correct data.");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		} finally {
+			method.releaseConnection();
 		}
 	}
 
@@ -125,5 +156,42 @@ public class HudsonClient {
 			return list.item(0).getTextContent().trim();
 		}
 		return null;
+	}
+
+	private HttpClient getClient(String base) {
+		try {
+			HttpClient client = new HttpClient();
+			String type;
+			URI u = new URI(base);
+			if (u.getScheme().equalsIgnoreCase("https")) {
+				type = IProxyData.HTTPS_PROXY_TYPE;
+				client.getHostConfiguration().setHost(u.getHost(), u.getPort(), new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), 443));
+			} else {
+				type = IProxyData.HTTP_PROXY_TYPE;
+				client.getHostConfiguration().setHost(u.getHost(), u.getPort());
+			}
+			IProxyData proxyData = Activator.getDefault().getProxyService().getProxyDataForHost(u.getHost(), type);
+			if (proxyData != null) {
+				client.getHostConfiguration().setProxy(proxyData.getHost(), proxyData.getPort());
+				if (proxyData.isRequiresAuthentication()) {
+					client.getState().setProxyCredentials(new AuthScope(proxyData.getHost(), proxyData.getPort()),
+							new UsernamePasswordCredentials(proxyData.getUserId(), proxyData.getPassword()));
+				}
+			}
+			client.getParams().setConnectionManagerTimeout(1000);
+			client.getParams().setSoTimeout(1000);
+			return client;
+		} catch (URISyntaxException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+
+	private String getRelativePath(String url) {
+		int pos = url.indexOf('/', 8);
+		if (pos == -1) {
+			return "";
+		} else {
+			return url.substring(pos + 1);
+		}
 	}
 }
