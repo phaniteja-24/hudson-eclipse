@@ -17,6 +17,7 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.action.SubStatusLineManager;
 import org.eclipse.jface.dialogs.ErrorDialog;
+import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
@@ -65,6 +66,8 @@ public class HudsonView extends ViewPart {
 	private Action viewConsoleAction;
 
 	private String baseUrl;
+
+	private Action securityTokenAction;
 
 	public void init(IViewSite site) throws PartInitException {
 		super.init(site);
@@ -166,6 +169,7 @@ public class HudsonView extends ViewPart {
 		manager.add(openBrowserAction);
 		manager.add(scheduleAction);
 		manager.add(viewConsoleAction);
+		manager.add(securityTokenAction);
 		manager.add(new Separator());
 		manager.add(refreshAction);
 
@@ -248,11 +252,24 @@ public class HudsonView extends ViewPart {
 		viewConsoleAction.setToolTipText("Open the console output for the latest build");
 		viewConsoleAction.setEnabled(false);
 
+		securityTokenAction = new Action() {
+			public void run() {
+				IStructuredSelection sel = (IStructuredSelection) viewer.getSelection();
+				Job j = (Job) sel.getFirstElement();
+
+				showSecurityTokenDialog(j);
+			}
+		};
+		securityTokenAction.setText("Set security token...");
+		securityTokenAction.setToolTipText("Configure the security token used to schedule builds");
+		securityTokenAction.setEnabled(false);
+
 		viewer.addSelectionChangedListener(new ISelectionChangedListener() {
 			public void selectionChanged(SelectionChangedEvent event) {
 				IStructuredSelection sel = (IStructuredSelection) event.getSelection();
 				scheduleAction.setEnabled(sel.size() == 1);
 				openBrowserAction.setEnabled(sel.size() == 1);
+				securityTokenAction.setEnabled(sel.size() == 1);
 
 				Job j = (Job) sel.getFirstElement();
 				viewConsoleAction.setEnabled(sel.size() == 1 && j.getLastBuild() != null);
@@ -278,6 +295,16 @@ public class HudsonView extends ViewPart {
 		refreshAction.setText("Refresh status");
 		refreshAction.setToolTipText("Refresh status for all projects");
 		refreshAction.setImageDescriptor(Activator.getImageDescriptor("icons/refresh.png"));
+
+	}
+
+	private void showSecurityTokenDialog(Job j) {
+		Preferences prefs = Activator.getDefault().getPluginPreferences();
+		String sc = prefs.getString(Activator.PREF_SECURITY_TOKEN + "_" + j.getName());
+		InputDialog dialog = new InputDialog(getSite().getShell(), "Enter security token for " + j.getName(), "Enter the security token for job " + j.getName(), sc, null);
+		if (dialog.open() == InputDialog.OK) {
+			prefs.setValue(Activator.PREF_SECURITY_TOKEN + "_" + j.getName(), dialog.getValue());
+		}
 	}
 
 	private void hookDoubleClickAction() {
