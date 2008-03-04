@@ -1,5 +1,7 @@
 package dk.contix.eclipse.hudson.views;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.IOException;
 
 import org.eclipse.core.runtime.IPath;
@@ -10,6 +12,7 @@ import org.eclipse.core.runtime.Preferences;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.Preferences.PropertyChangeEvent;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.ControlContribution;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
@@ -19,6 +22,7 @@ import org.eclipse.jface.action.SubStatusLineManager;
 import org.eclipse.jface.dialogs.ErrorDialog;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -26,14 +30,17 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
@@ -48,13 +55,15 @@ import dk.contix.eclipse.hudson.Activator;
 import dk.contix.eclipse.hudson.HudsonClient;
 import dk.contix.eclipse.hudson.Job;
 import dk.contix.eclipse.hudson.JobContentProvider;
+import dk.contix.eclipse.hudson.JobView;
 import dk.contix.eclipse.hudson.views.actions.BuildStatusAction;
 import dk.contix.eclipse.hudson.views.actions.FilterAction;
 import dk.contix.eclipse.hudson.views.actions.FilterJobAction;
 import dk.contix.eclipse.hudson.views.actions.OpenPreferencesAction;
+import dk.contix.eclipse.hudson.views.actions.SelectViewAction;
 import dk.contix.eclipse.hudson.views.actions.StatusFilter;
 
-public class HudsonView extends ViewPart {
+public class HudsonView extends ViewPart implements PropertyChangeListener {
 	private TableViewer viewer;
 
 	private Action scheduleAction;
@@ -69,9 +78,18 @@ public class HudsonView extends ViewPart {
 
 	private Action securityTokenAction;
 
+	private NameFilter nameFilter;
+
+	private Text nameText;
+
+	private PropertyChangeSupport nameChanges = new PropertyChangeSupport(this);
+
+	private JobContentProvider jobContentProvider;
+
 	public void init(IViewSite site) throws PartInitException {
 		super.init(site);
 		configurePreferences();
+		nameChanges.addPropertyChangeListener(this);
 	}
 
 	public void createPartControl(Composite parent) {
@@ -100,7 +118,8 @@ public class HudsonView extends ViewPart {
 		t.setHeaderVisible(true);
 
 		viewer.setColumnProperties(new String[] { "Project", "Status", "" });
-		viewer.setContentProvider(new JobContentProvider(viewer, buildStatusAction));
+		jobContentProvider = new JobContentProvider(viewer, buildStatusAction);
+		viewer.setContentProvider(jobContentProvider);
 		viewer.setLabelProvider(new JobLabelProvider());
 
 		viewer.setSorter(sorter);
@@ -158,11 +177,40 @@ public class HudsonView extends ViewPart {
 		MenuManager filtermenu = new MenuManager("Filters");
 
 		StatusFilter filter = new StatusFilter();
+		nameFilter = new NameFilter();
+		nameChanges.addPropertyChangeListener(nameFilter);
 		filtermenu.add(new FilterAction(viewer, "Successful builds", "Show successful builds", Activator.PREF_FILTER_SUCCESS, filter));
 		filtermenu.add(new FilterAction(viewer, "Failed builds", "Show failed builds", Activator.PREF_FILTER_FAIL, filter));
 		filtermenu.add(new FilterAction(viewer, "Test failures", "Show builds with test failures", Activator.PREF_FILTER_FAIL_TEST, filter));
 		filtermenu.add(new FilterAction(viewer, "Unbuilt projects", "Show projects which have not been built yet", Activator.PREF_FILTER_NO_BUILD, filter));
+		FilterAction nameFilterAction = new FilterAction(viewer, "Name Filter", "Show Projects by Name", Activator.PREF_FILTER_NAME, nameFilter);
+		nameFilterAction.addPropertyChangeListener(new IPropertyChangeListener() {
+			public void propertyChange(
+					org.eclipse.jface.util.PropertyChangeEvent event) {
+				if(nameText!=null && nameText.isDisposed()==false)
+					nameText.setEnabled(((Boolean)event.getNewValue()).booleanValue());				
+			}
+		});
+		filtermenu.add(nameFilterAction);		
+
 		manager.add(filtermenu);
+		
+		MenuManager viewmenu = new MenuManager("Views");
+		updateViewMenu(viewmenu);
+		manager.add(viewmenu);
+	}
+
+	private void updateViewMenu(MenuManager viewmenu) {
+		HudsonClient client = new HudsonClient();
+		
+		try {
+			JobView[] views = client.getViews();
+			for (JobView view : views) {
+				viewmenu.add(new SelectViewAction(viewer, view, jobContentProvider));
+			}
+		} catch (IOException e) {
+			// unable to get views. Don't do anything
+		}
 	}
 
 	private void fillContextMenu(IMenuManager manager) {
@@ -188,6 +236,25 @@ public class HudsonView extends ViewPart {
 	}
 
 	private void fillLocalToolBar(IToolBarManager manager) {
+		ControlContribution nameControlContribution = new ControlContribution("contribution_id") {
+			protected Control createControl(Composite parent) {			 
+				nameText = new Text(parent, SWT.BORDER);
+
+				nameText.addModifyListener(new ModifyListener() {
+					public void modifyText(org.eclipse.swt.events.ModifyEvent e) {					
+						nameChanges.fireIndexedPropertyChange("text", 0, null,
+								nameText.getText());
+					}
+				});
+				return nameText;
+			}
+
+			protected int computeWidth(Control control) {
+				return 200;
+			}
+		};
+
+		manager.add(nameControlContribution);
 		manager.add(scheduleAction);
 		manager.add(refreshAction);
 	}
@@ -295,7 +362,6 @@ public class HudsonView extends ViewPart {
 		refreshAction.setText("Refresh status");
 		refreshAction.setToolTipText("Refresh status for all projects");
 		refreshAction.setImageDescriptor(Activator.getImageDescriptor("icons/refresh.png"));
-
 	}
 
 	private void showSecurityTokenDialog(Job j) {
@@ -399,4 +465,14 @@ public class HudsonView extends ViewPart {
 	private void showError(String msg, Exception e) {
 		ErrorDialog.openError(getSite().getShell(), "Hudson Error", null, new Status(Status.ERROR, Activator.PLUGIN_ID, Status.OK, msg, e));
 	}
+	
+	public void propertyChange(java.beans.PropertyChangeEvent arg0) {
+		viewer.removeFilter(nameFilter);
+		viewer.addFilter(nameFilter);		 
+	}
+
+	public void refreshTableViewer() {
+		viewer.refresh();
+	}
+
 }

@@ -38,6 +38,8 @@ public class JobContentProvider implements IStructuredContentProvider {
 
 	private final BuildStatusAction action;
 
+	private String viewUrl;
+
 	public JobContentProvider(final TableViewer viewer, BuildStatusAction action) {
 		this.viewer = viewer;
 		this.action = action;
@@ -62,9 +64,9 @@ public class JobContentProvider implements IStructuredContentProvider {
 					Display.getDefault().asyncExec(new Runnable() {
 						public void run() {
 							viewer.refresh();
+							updateJob.schedule(prefs.getInt(Activator.PREF_UPDATE_INTERVAL) * 1000);
 						}
 					});
-					updateJob.schedule(prefs.getInt(Activator.PREF_UPDATE_INTERVAL) * 1000);
 					return Status.OK_STATUS;
 				}
 			};
@@ -80,7 +82,12 @@ public class JobContentProvider implements IStructuredContentProvider {
 
 		try {
 			updating = true;
-			Job[] newJobs = client.getJobs();
+			Job[] newJobs;
+			if (viewUrl == null) {
+				newJobs = client.getJobs();
+			} else {
+				newJobs = client.getJobs(viewUrl);
+			}
 
 			if (jobs != null && prefs.getBoolean(Activator.PREF_POPUP_ON_ERROR)) {
 				for (int i = 0; i < newJobs.length; i++) {
@@ -103,15 +110,16 @@ public class JobContentProvider implements IStructuredContentProvider {
 			}
 
 			jobs = newJobs;
+			error = false;
 			return jobs;
 		} catch (Exception e) {
 			action.setUnknown();
-			if (!error) {
+			if (!error && prefs.getBoolean(Activator.PREF_POPUP_ON_CONNECTION_ERROR)) {
 				ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
 						"Unable to get status from Hudson. Check that the base url is configured correctly under preferences.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
 								"Unable to communicate with Hudson", e));
-				error = true;
 			}
+			error = true;
 			return new Object[0];
 		} finally {
 			updating = false;
@@ -141,6 +149,10 @@ public class JobContentProvider implements IStructuredContentProvider {
 	}
 
 	public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
+	}
+
+	public void setView(String url) {
+		this.viewUrl = url;
 	}
 
 }
