@@ -31,7 +31,8 @@ import org.xml.sax.SAXException;
  * 
  */
 public class HudsonClient {
-
+	private static final Job[] EMPTY = new Job[0];
+	
 	private Preferences prefs;
 
 	public HudsonClient() {
@@ -40,12 +41,22 @@ public class HudsonClient {
 	}
 
 	private String getBase() {
-		return prefs.getString(Activator.PREF_BASE_URL);
+		String b = prefs.getString(Activator.PREF_BASE_URL);
+		if (b == null || "".equals(b.trim())) {
+			return null;
+		} else {
+			return b;
+		}
 	}
 
 	public Job[] getJobs() throws IOException {
-		HttpClient client = getClient(getBase());
-		GetMethod method = new GetMethod(getRelativePath(getBase()) + "/api/xml");
+		return getJobs(getBase());
+	}
+	
+	public Job[] getJobs(String viewUrl) throws IOException {
+		HttpClient client = getClient(viewUrl);
+		if (client == null) return EMPTY;
+		GetMethod method = new GetMethod(getRelativePath(viewUrl) + "api/xml");
 
 		try {
 			client.executeMethod(method);
@@ -79,10 +90,43 @@ public class HudsonClient {
 			method.releaseConnection();
 		}
 	}
+	
+	public JobView[] getViews() throws IOException{
+		HttpClient client = getClient(getBase());
+		if (client == null) return new JobView[0];
+
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "api/xml");
+		try {
+			client.executeMethod(method);
+			InputStream is = method.getResponseBodyAsStream();
+			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+			is.close();
+
+			Element root = doc.getDocumentElement();
+			NodeList viewNodes = root.getElementsByTagName("view");
+
+			JobView[] res = new JobView[viewNodes.getLength()];
+			for (int i = 0; i < res.length; i++) {
+				Element jobNode = (Element) viewNodes.item(i);
+
+				String name = getNodeValue(jobNode, "name");
+				String url = getNodeValue(jobNode, "url");
+				res[i] = new JobView(name, url);
+			}
+
+			return res;
+		} catch (SAXException e) {
+			throw new RuntimeException(e);
+		} catch (ParserConfigurationException e) {
+			throw new RuntimeException(e);
+		} finally {
+			method.releaseConnection();
+		}
+	}
 
 	private String getBuildNumber(String name) throws IOException, SAXException, ParserConfigurationException {
 		HttpClient client = getClient(getBase());
-		GetMethod method = new GetMethod(getRelativePath(getBase()) + "/job/" + encode(name) + "/api/xml");
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/api/xml");
 		try {
 			client.executeMethod(method);
 			InputStream bodyStream = method.getResponseBodyAsStream();
@@ -114,7 +158,7 @@ public class HudsonClient {
 			token = "?token=" + st;
 		}
 
-		GetMethod method = new GetMethod(getRelativePath(getBase()) + "/job/" + encode(project) + "/build" + token);
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(project) + "/build" + token);
 
 		try {
 			int res = client.executeMethod(method);
@@ -130,7 +174,7 @@ public class HudsonClient {
 	public void checkValidUrl(String base) throws Exception {
 
 		HttpClient client = getClient(base);
-		GetMethod method = new GetMethod(getRelativePath(base) + "/api/xml");
+		GetMethod method = new GetMethod(getRelativePath(base) + "api/xml");
 
 		try {
 			client.executeMethod(client.getHostConfiguration(), method);
@@ -159,6 +203,8 @@ public class HudsonClient {
 	}
 
 	private HttpClient getClient(String base) {
+		if (base == null) return null;
+		
 		try {
 			HttpClient client = new HttpClient();
 			String type;
@@ -189,9 +235,9 @@ public class HudsonClient {
 	private String getRelativePath(String url) {
 		int pos = url.indexOf('/', 8);
 		if (pos == -1) {
-			return "";
+			return "/";
 		} else {
-			return url.substring(pos + 1);
+			return url.substring(pos);
 		}
 	}
 }

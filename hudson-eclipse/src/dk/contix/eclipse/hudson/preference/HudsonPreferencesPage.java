@@ -55,6 +55,7 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 		addField(interval);
 
 		addField(new BooleanFieldEditor(Activator.PREF_POPUP_ON_ERROR, "Popup window when state changes to error?", getFieldEditorParent()));
+		addField(new BooleanFieldEditor(Activator.PREF_POPUP_ON_CONNECTION_ERROR, "Popup error when connection to Hudson fails?", getFieldEditorParent()));
 
 		interval.setEnabled(getPreferenceStore().getBoolean(Activator.PREF_AUTO_UPDATE), getFieldEditorParent());
 	}
@@ -92,7 +93,7 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 
 			setChangeButtonText("Check url");
 			setValidateStrategy(StringButtonFieldEditor.VALIDATE_ON_FOCUS_LOST);
-			setEmptyStringAllowed(false);
+			setEmptyStringAllowed(true);
 			setErrorMessage("Invalid url");
 
 			createControl(parent);
@@ -123,7 +124,9 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 		}
 
 		private void check() throws Exception {
-			new HudsonClient().checkValidUrl(getStringValue());
+			if (getStringValue() != null && !"".equals(getStringValue().trim())) {
+				new HudsonClient().checkValidUrl(getStringValue());
+			}
 		}
 
 		protected String changePressed() {

@@ -25,6 +25,8 @@ public class Activator extends AbstractUIPlugin {
 	public static final String PREF_UPDATE_INTERVAL = "update_interval";
 
 	public static final String PREF_POPUP_ON_ERROR = "popup_error";
+	
+	public static final String PREF_POPUP_ON_CONNECTION_ERROR = "popup_connection_error";
 
 	public static final String PREF_FILTER_SUCCESS = "filter_success";
 
@@ -37,6 +39,10 @@ public class Activator extends AbstractUIPlugin {
 	public static final String PREF_FILTER_IGNORE_PROJECT = "filter_ignore_build";
 
 	public static final String PREF_SECURITY_TOKEN = "security_token";
+	
+	public static final String PREF_FILTER_NAME = "filter_by_name";
+	
+	public static final String PREF_SELECTED_VIEW = "selected_view";
 
 	// The shared instance
 	private static Activator plugin;
