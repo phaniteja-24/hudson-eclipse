@@ -13,6 +13,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.Preferences.PropertyChangeEvent;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ControlContribution;
+import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
@@ -131,7 +132,10 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 		contributeToActionBars();
 
 		SubStatusLineManager slm = (SubStatusLineManager) getViewSite().getActionBars().getStatusLineManager();
-		slm.getParent().add(buildStatusAction);
+		IContributionManager slmParent = slm.getParent();
+		if (slmParent.find(BuildStatusAction.ID) == null) {
+			slmParent.add(buildStatusAction);
+		}
 
 		for (int i = 0; i < 2; i++) {
 			t.getColumn(i).pack();
@@ -473,6 +477,16 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 
 	public void refreshTableViewer() {
 		viewer.refresh();
+	}
+
+	// This will remove the hudson statuslinecontribution when the view closes.
+	@Override
+	public void dispose() {
+		SubStatusLineManager slm = (SubStatusLineManager) getViewSite().getActionBars().getStatusLineManager();
+		IContributionManager parent = slm.getParent();
+		parent.remove(BuildStatusAction.ID);
+		parent.update(false);
+		super.dispose();
 	}
 
 }
