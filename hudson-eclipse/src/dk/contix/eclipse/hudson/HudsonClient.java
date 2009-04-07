@@ -241,7 +241,7 @@ public class HudsonClient {
 			}
 			client.getParams().setConnectionManagerTimeout(1000);
 			client.getHttpConnectionManager().getParams().setConnectionTimeout(2000);
-			client.getParams().setSoTimeout(1000);
+			client.getParams().setSoTimeout(3000);
 			
 			//submits a GET to the security servlet with user and password as parameters
 			if (authEnabled) {
