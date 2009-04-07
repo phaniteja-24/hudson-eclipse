@@ -120,16 +120,19 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 
 		viewer.setColumnProperties(new String[] { "Project", "Status", "" });
 		jobContentProvider = new JobContentProvider(viewer, buildStatusAction);
-		viewer.setContentProvider(jobContentProvider);
-		viewer.setLabelProvider(new JobLabelProvider());
-
-		viewer.setSorter(sorter);
-		viewer.setInput(getViewSite());
 
 		makeActions();
 		hookContextMenu();
 		hookDoubleClickAction();
 		contributeToActionBars();
+
+		// Set the content provider after creating the filters since 
+		// a refresh on the viewer is triggered for each filter added.
+		viewer.setContentProvider(jobContentProvider);
+		viewer.setLabelProvider(new JobLabelProvider());
+
+		viewer.setSorter(sorter);
+		viewer.setInput(getViewSite());
 
 		SubStatusLineManager slm = (SubStatusLineManager) getViewSite().getActionBars().getStatusLineManager();
 		IContributionManager slmParent = slm.getParent();

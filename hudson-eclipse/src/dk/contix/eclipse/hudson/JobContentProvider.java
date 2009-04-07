@@ -50,7 +50,6 @@ public class JobContentProvider implements IStructuredContentProvider {
 				reloadUpdateJob();
 			}
 		});
-		reloadUpdateJob();
 	}
 
 	private void reloadUpdateJob() {
