@@ -17,6 +17,7 @@ import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.protocol.Protocol;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
+import org.apache.log4j.Logger;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.runtime.Preferences;
 import org.w3c.dom.Document;
@@ -31,6 +32,8 @@ import org.xml.sax.SAXException;
  * 
  */
 public class HudsonClient {
+	private static final Logger log = Logger.getLogger(HudsonClient.class);
+	
 	private static final Job[] EMPTY = new Job[0];
 	
 	private Preferences prefs;
@@ -42,6 +45,7 @@ public class HudsonClient {
 
 	private String getBase() {
 		String b = prefs.getString(Activator.PREF_BASE_URL);
+		log.debug("Base url: " + b);
 		if (b == null || "".equals(b.trim())) {
 			return null;
 		} else {
@@ -244,7 +248,11 @@ public class HudsonClient {
 		if (pos == -1) {
 			return "/";
 		} else {
-			return url.substring(pos);
+			String path = url.substring(pos);
+			if (!path.endsWith("/")) {
+				path += "/";
+			}
+			return path;
 		}
 	}
 }
