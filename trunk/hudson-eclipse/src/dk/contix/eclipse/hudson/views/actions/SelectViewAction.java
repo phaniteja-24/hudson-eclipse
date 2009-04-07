@@ -24,7 +24,10 @@ public class SelectViewAction extends Action{
 		
 		store = Activator.getDefault().getPreferenceStore();
 		
-		setChecked(view.getName().equals(store.getString(Activator.PREF_SELECTED_VIEW)));
+		if (view.getName().equals(store.getString(Activator.PREF_SELECTED_VIEW))) {
+			setChecked(true);
+			run();
+		}
 	}
 	
 	public void run() {
