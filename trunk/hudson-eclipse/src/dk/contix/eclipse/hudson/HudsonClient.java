@@ -110,7 +110,7 @@ public class HudsonClient {
 				Element jobNode = (Element) viewNodes.item(i);
 
 				String name = getNodeValue(jobNode, "name");
-				String url = getNodeValue(jobNode, "url");
+				String url = getNodeValue(jobNode, "url").replaceAll(" ", "%20");
 				res[i] = new JobView(name, url);
 			}
 
