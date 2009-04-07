@@ -10,9 +10,10 @@ import dk.contix.eclipse.hudson.Job;
 
 
 public class BuildStatusAction extends StatusLineContributionItem {
+	public static final String ID = Activator.PLUGIN_ID + ".statusline";
 	
 	public BuildStatusAction() {
-		super(Activator.PLUGIN_ID + ".statusline");
+		super(ID);
 
 		setImage(Activator.getImage("icons/hudson.png"));
 		setToolTipText("Hudson status");
