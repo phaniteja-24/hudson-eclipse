@@ -1,6 +1,5 @@
 package dk.contix.eclipse.hudson.preference;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -13,17 +12,13 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.views.IViewDescriptor;
 
 import dk.contix.eclipse.hudson.Activator;
 import dk.contix.eclipse.hudson.HudsonClient;
 
 public class HudsonPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
-
-	private IWorkbench workbench;
 
 	private IntegerFieldEditor interval;
 
@@ -106,7 +101,6 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 	}
 
 	public void init(IWorkbench workbench) {
-		this.workbench = workbench;
 	}
 
 	protected IPreferenceStore doGetPreferenceStore() {
@@ -115,21 +109,6 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 
 	public void dispose() {
 		super.dispose();
-	}
-
-	public boolean performOk() {
-
-		IViewDescriptor desc = workbench.getViewRegistry().find(Activator.PLUGIN_ID + ".views.HudsonView");
-		if (desc != null) {
-			try {
-				IViewPart part = desc.createView();
-				System.out.println(part);
-			} catch (CoreException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		return super.performOk();
 	}
 
 	private class HudsonUrlField extends StringButtonFieldEditor {
