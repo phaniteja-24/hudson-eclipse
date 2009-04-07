@@ -3,8 +3,8 @@ package dk.contix.eclipse.hudson;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLEncoder;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -208,13 +208,20 @@ public class HudsonClient {
 		try {
 			HttpClient client = new HttpClient();
 			String type;
-			URI u = new URI(base);
-			if (u.getScheme().equalsIgnoreCase("https")) {
+			URL u = new URL(base);
+			int port = u.getPort();
+			if (u.getProtocol().equalsIgnoreCase("https")) {
+				if (port == -1) {
+					port = 443;
+				}
 				type = IProxyData.HTTPS_PROXY_TYPE;
-				client.getHostConfiguration().setHost(u.getHost(), u.getPort(), new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), 443));
+				client.getHostConfiguration().setHost(u.getHost(), port, new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), 443));
 			} else {
+				if (port == -1) {
+					port = 80;
+				}
 				type = IProxyData.HTTP_PROXY_TYPE;
-				client.getHostConfiguration().setHost(u.getHost(), u.getPort());
+				client.getHostConfiguration().setHost(u.getHost(), port);
 			}
 			IProxyData proxyData = Activator.getDefault().getProxyService().getProxyDataForHost(u.getHost(), type);
 			if (proxyData != null) {
@@ -227,7 +234,7 @@ public class HudsonClient {
 			client.getParams().setConnectionManagerTimeout(1000);
 			client.getParams().setSoTimeout(1000);
 			return client;
-		} catch (URISyntaxException e1) {
+		} catch (MalformedURLException e1) {
 			throw new RuntimeException(e1);
 		}
 	}
