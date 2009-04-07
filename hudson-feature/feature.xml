@@ -2,7 +2,7 @@
 <feature
       id="dk.contix.eclipse.hudson"
       label="Hudson"
-      version="1.0.4"
+      version="1.0.5"
       provider-name="Contix Technologies">
 
    <description url="http://braindump.dk/tech/">
