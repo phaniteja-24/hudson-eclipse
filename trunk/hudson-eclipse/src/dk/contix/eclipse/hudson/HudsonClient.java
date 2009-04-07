@@ -175,9 +175,9 @@ public class HudsonClient {
 		}
 	}
 
-	public void checkValidUrl(String base) throws Exception {
+	public void checkValidUrl(String base, boolean authEnabled, String username, String password) throws Exception {
 
-		HttpClient client = getClient(base);
+		HttpClient client = getClient(base, authEnabled, username, password);
 		GetMethod method = new GetMethod(getRelativePath(base) + "api/xml");
 
 		try {
@@ -206,7 +206,11 @@ public class HudsonClient {
 		return null;
 	}
 
-	private HttpClient getClient(String base) {
+	private HttpClient getClient(String base) throws IOException {
+		return getClient(base, prefs.getBoolean(Activator.PREF_USE_AUTH), prefs.getString(Activator.PREF_LOGIN), prefs.getString(Activator.PREF_PASSWORD));
+	}
+
+	private HttpClient getClient(String base, boolean authEnabled, String username, String password) throws IOException {
 		if (base == null) return null;
 		
 		try {
@@ -237,6 +241,15 @@ public class HudsonClient {
 			}
 			client.getParams().setConnectionManagerTimeout(1000);
 			client.getParams().setSoTimeout(1000);
+			
+			//submits a GET to the security servlet with user and password as parameters
+			if (authEnabled) {
+				log.debug("Auth is enabled, username: " + username);
+				GetMethod getMethod = new GetMethod(getRelativePath(base) + "j_acegi_security_check");
+				getMethod.setQueryString("j_username=" + username + "&j_password="+password);
+				client.executeMethod(getMethod);
+			}
+
 			return client;
 		} catch (MalformedURLException e1) {
 			throw new RuntimeException(e1);

@@ -44,6 +44,12 @@ public class Activator extends AbstractUIPlugin {
 	
 	public static final String PREF_SELECTED_VIEW = "selected_view";
 
+	public static final String PREF_USE_AUTH = "use_auth";
+
+	public static final String PREF_LOGIN = "login";
+
+	public static final String PREF_PASSWORD = "password";
+
 	// The shared instance
 	private static Activator plugin;
 

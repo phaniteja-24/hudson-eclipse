@@ -6,6 +6,7 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.IntegerFieldEditor;
 import org.eclipse.jface.preference.StringButtonFieldEditor;
+import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.SelectionEvent;
@@ -26,6 +27,12 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 
 	private IntegerFieldEditor interval;
 
+	private StringFieldEditor password;
+
+	private StringFieldEditor username;
+
+	private BooleanFieldEditor authEnabled;
+
 	public HudsonPreferencesPage() {
 		super(FieldEditorPreferencePage.GRID);
 	}
@@ -33,6 +40,8 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 	protected void createFieldEditors() {
 		addField(new HudsonUrlField(getFieldEditorParent()));
 
+		addPasswordFields();
+		
 		final BooleanFieldEditor enabled = new BooleanFieldEditor(Activator.PREF_AUTO_UPDATE, "Update periodically?", getFieldEditorParent()) {
 			protected Button getChangeControl(Composite parent) {
 				final Button c = super.getChangeControl(parent);
@@ -58,6 +67,42 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 		addField(new BooleanFieldEditor(Activator.PREF_POPUP_ON_CONNECTION_ERROR, "Popup error when connection to Hudson fails?", getFieldEditorParent()));
 
 		interval.setEnabled(getPreferenceStore().getBoolean(Activator.PREF_AUTO_UPDATE), getFieldEditorParent());
+	}
+
+	private void addPasswordFields() {
+		
+		//adds fields for authentication
+		authEnabled = new BooleanFieldEditor(Activator.PREF_USE_AUTH, "Use authentication", getFieldEditorParent()) {
+			protected Button getChangeControl(Composite parent) {
+				final Button c = super.getChangeControl(parent);
+
+				c.addSelectionListener(new SelectionListener() {
+					public void widgetDefaultSelected(SelectionEvent arg0) {
+					}
+
+					public void widgetSelected(SelectionEvent e) {
+						username.setEnabled(c.getSelection(), getFieldEditorParent());
+						password.setEnabled(c.getSelection(), getFieldEditorParent());
+					}
+
+				});
+				return c;
+			}
+		};
+		addField(authEnabled);
+		username = new StringFieldEditor(Activator.PREF_LOGIN, "Login", getFieldEditorParent());
+		password = new StringFieldEditor(Activator.PREF_PASSWORD, "Password", getFieldEditorParent()) {
+			@Override
+			protected void doFillIntoGrid(Composite parent, int numColumns) {
+				super.doFillIntoGrid(parent, numColumns);
+				
+				getTextControl().setEchoChar('*');
+			}
+		};
+		addField(username);
+		addField(password);
+		username.setEnabled(getPreferenceStore().getBoolean(Activator.PREF_USE_AUTH), getFieldEditorParent());
+		password.setEnabled(getPreferenceStore().getBoolean(Activator.PREF_USE_AUTH), getFieldEditorParent());
 	}
 
 	public void init(IWorkbench workbench) {
@@ -125,7 +170,7 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 
 		private void check() throws Exception {
 			if (getStringValue() != null && !"".equals(getStringValue().trim())) {
-				new HudsonClient().checkValidUrl(getStringValue());
+				new HudsonClient().checkValidUrl(getStringValue(), authEnabled.getBooleanValue(), username.getStringValue(), password.getStringValue());
 			}
 		}
 
