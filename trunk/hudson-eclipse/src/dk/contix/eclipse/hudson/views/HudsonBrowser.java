@@ -51,13 +51,21 @@ public class HudsonBrowser extends EditorPart {
 		super.setInput(input);
 
 		if (browser != null) {
-			browser.setUrl(((IPathEditorInput)input).getPath().toString());
+			browser.setUrl(fixBrokenUrlString(((IPathEditorInput)input).getPath().toString()));
 		}
 	}
 	
 	public void openUrl(String url, String name) {
-		browser.setUrl(url);
+		browser.setUrl(fixBrokenUrlString(url));
 		setPartName("Hudson: " + name);
 	}
+
+	private String fixBrokenUrlString(String url) {
+		if (url.indexOf("://") < 0) {
+			return url.replaceFirst(":/", "://");
+		}
+		return url;
+	}
+
 
 }
