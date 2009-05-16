@@ -25,6 +25,7 @@ import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.runtime.Preferences;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -79,13 +80,15 @@ public class HudsonClient {
 				Element jobNode = (Element) jobNodes.item(i);
 
 				String name = getNodeValue(jobNode, "name");
-				String url = getNodeValue(jobNode, "url");
 				String last = getNodeValue(jobNode, "lastBuild");
 				if (last == null) {
 					// we're probably in a newer version of hudson, so we get the build number separately
-					last = getBuildNumber(name);
+					res[i] = getJob(name, client);
+				} else {
+					String url = getNodeValue(jobNode, "url");
+				
+					res[i] = new Job(name, url, last, BuildStatus.getStatus(getNodeValue(jobNode, "color")), null);
 				}
-				res[i] = new Job(name, url, getNodeValue(jobNode, "color"), last);
 			}
 
 			return res;
@@ -131,24 +134,42 @@ public class HudsonClient {
 		}
 	}
 
-	private String getBuildNumber(String name) throws IOException, SAXException, ParserConfigurationException {
-		HttpClient client = getClient(getBase());
+	private Job getJob(String name, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
 		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/api/xml");
 		try {
 			client.executeMethod(method);
 			InputStream bodyStream = method.getResponseBodyAsStream();
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(bodyStream);
 			bodyStream.close();
-			NodeList els = doc.getElementsByTagName("lastBuild");
-			if (els.getLength() == 1) {
-				return getNodeValue((Element) els.item(0), "number");
+			
+			Element jobNode = doc.getDocumentElement();
+
+			String url = getNodeValue(jobNode, "url");
+			String status = getNodeValue(jobNode, "color");
+			String lastBuild = getNodeValue(getChild("lastBuild", jobNode), "number");
+			String healthScore = getNodeValue(getChild("healthReport", jobNode), "score");
+			BuildHealth health = null;
+			if (healthScore != null) {
+				health = new BuildHealth(Integer.valueOf(healthScore));
 			}
+			
+			return new Job(name, url, lastBuild, BuildStatus.getStatus(status), health);
 		} finally {
 			method.releaseConnection();
 		}
+	}
+	
+	private Element getChild(String name, Element parent) {
+		NodeList nodes = parent.getChildNodes();
+		for (int i = 0; i < nodes.getLength(); i++) {
+			Node n = nodes.item(i);
+			if (name.equals(n.getNodeName())) {
+				return (Element) n;
+			}
+		}
 		return null;
 	}
-
+	
 	private String encode(String url) {
 		try {
 			return URLEncoder.encode(url, "UTF-8").replaceAll("\\+", "%20");
@@ -223,6 +244,7 @@ public class HudsonClient {
 	}
 
 	private String getNodeValue(Element node, String name) {
+		if (node == null) return null;
 		NodeList list = node.getElementsByTagName(name);
 		if (list.getLength() == 1) {
 			return list.item(0).getTextContent().trim();

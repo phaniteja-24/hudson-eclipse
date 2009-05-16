@@ -7,25 +7,23 @@ package dk.contix.eclipse.hudson;
  *
  */
 public class Job {
-	public static final String BUILD_SUCCESS = "blue";
-	public static final String BUILD_FAIL = "red";
-	public static final String BUILD_TEST_FAIL = "yellow";
-	public static final String BUILD_NO_BUILD = "grey";
 	
 	private String name;
 	private String url;
-	private String color;
 	private String lastBuild;
+	private BuildStatus status;
+	private final BuildHealth health;
 	
-	public Job(String name, String url, String color, String lastBuild) {
+	public Job(String name, String url, String lastBuild, BuildStatus status, BuildHealth health) {
 		super();
 		this.name = name;
 		this.url = url;
-		this.color = color;
 		this.lastBuild = lastBuild;
+		this.status = status;
+		this.health = health;
 	}
-	public String getColor() {
-		return color;
+	public BuildStatus getStatus() {
+		return status;
 	}
 	public String getName() {
 		return name;
@@ -36,14 +34,18 @@ public class Job {
 	public String getLastBuild() {
 		return lastBuild;
 	}
+	public BuildHealth getHealth() {
+		return health;
+	}
 
 	public int hashCode() {
 		final int PRIME = 31;
 		int result = 1;
-		result = PRIME * result + ((color == null) ? 0 : color.hashCode());
+		result = PRIME * result + ((status == null) ? 0 : status.hashCode());
 		result = PRIME * result + ((lastBuild == null) ? 0 : lastBuild.hashCode());
 		result = PRIME * result + ((name == null) ? 0 : name.hashCode());
 		result = PRIME * result + ((url == null) ? 0 : url.hashCode());
+		result = PRIME * result + ((health == null) ? 0 : health.hashCode());
 		return result;
 	}
 
@@ -55,10 +57,10 @@ public class Job {
 		if (getClass() != obj.getClass())
 			return false;
 		final Job other = (Job) obj;
-		if (color == null) {
-			if (other.color != null)
+		if (status == null) {
+			if (other.status != null)
 				return false;
-		} else if (!color.equals(other.color))
+		} else if (status != other.status)
 			return false;
 		if (lastBuild == null) {
 			if (other.lastBuild != null)
@@ -74,6 +76,11 @@ public class Job {
 			if (other.url != null)
 				return false;
 		} else if (!url.equals(other.url))
+			return false;
+		if (health == null) {
+			if (other.health != null)
+				return false;
+		} else if (!health.equals(other.health))
 			return false;
 		return true;
 	}

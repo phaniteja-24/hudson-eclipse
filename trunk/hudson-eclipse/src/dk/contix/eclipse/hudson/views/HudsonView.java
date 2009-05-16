@@ -115,8 +115,14 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 
 		col = new TableColumn(t, SWT.LEFT);
 		col.setText("Status");
+		col.setWidth(60);
+		col.addListener(SWT.Selection, sorter);
+		
+		col = new TableColumn(t, SWT.LEFT);
+		col.setText("Health");
 		col.setWidth(20);
 		col.addListener(SWT.Selection, sorter);
+		
 		t.setHeaderVisible(true);
 
 		viewer.setColumnProperties(new String[] { "Project", "Status", "" });

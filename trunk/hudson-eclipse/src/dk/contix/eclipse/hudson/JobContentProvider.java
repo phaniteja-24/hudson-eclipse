@@ -1,5 +1,6 @@
 package dk.contix.eclipse.hudson;
 
+import org.apache.log4j.Logger;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Preferences;
@@ -21,6 +22,7 @@ import dk.contix.eclipse.hudson.views.actions.BuildStatusAction;
  * 
  */
 public class JobContentProvider implements IStructuredContentProvider {
+	private static final Logger log = Logger.getLogger(JobContentProvider.class);
 
 	private org.eclipse.core.runtime.jobs.Job updateJob;
 
@@ -98,7 +100,7 @@ public class JobContentProvider implements IStructuredContentProvider {
 			}
 			check: {
 				for (int i = 0; i < newJobs.length; i++) {
-					if (newJobs[i].getColor().toLowerCase().equals(Job.BUILD_FAIL) || newJobs[i].getColor().toLowerCase().equals(Job.BUILD_TEST_FAIL)) {
+					if (newJobs[i].getStatus() == BuildStatus.FAIL || newJobs[i].getStatus() == BuildStatus.TEST_FAIL) {
 						if (!ignore(newJobs[i])) {
 							action.setError(newJobs[i]);
 							break check;
@@ -111,7 +113,16 @@ public class JobContentProvider implements IStructuredContentProvider {
 			jobs = newJobs;
 			error = false;
 			return jobs;
+		} catch (RuntimeException e) {
+			log.error("Unable to get jobs", e);
+			action.setUnknown();
+			ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
+					"Unable to get status from Hudson.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
+							"Unable to communicate with Hudson", e));
+			error = true;
+			return new Object[0];
 		} catch (Exception e) {
+			log.error("Unable to get jobs", e);
 			action.setUnknown();
 			if (!error && prefs.getBoolean(Activator.PREF_POPUP_ON_CONNECTION_ERROR)) {
 				ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
@@ -131,7 +142,7 @@ public class JobContentProvider implements IStructuredContentProvider {
 		}
 		for (int i = 0; i < jobs.length; i++) {
 			if (jobs[i].getName().equals(job.getName())) {
-				return job.getColor().toLowerCase().equals("red") && (jobs[i].getColor().toLowerCase().equals("blue") || jobs[i].getColor().toLowerCase().equals("blue_anime"));
+				return job.getStatus() == BuildStatus.FAIL && jobs[i].getStatus() == BuildStatus.SUCCESS;
 			}
 		}
 		return false;
