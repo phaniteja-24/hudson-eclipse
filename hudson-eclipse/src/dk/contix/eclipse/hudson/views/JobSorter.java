@@ -37,8 +37,11 @@ public class JobSorter extends ViewerSorter implements Listener {
 				res = j1.getLastBuild().compareTo(j2.getLastBuild());
 			}
 		} else if ("Status".equals(current)) {
-			res = j1.getColor().compareTo(j2.getColor());
+			res = j1.getStatus().compareTo(j2.getStatus());
+		} else if ("Health".equals(current)) {
+			res = j1.getHealth().compareTo(j2.getHealth());
 		}
+
 		if (direction == SWT.DOWN) {
 			res = -res;
 		}
