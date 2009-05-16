@@ -6,12 +6,15 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -154,25 +157,46 @@ public class HudsonClient {
 		}
 	}
 
-	public void scheduleJob(String project) throws IOException {
+	public void scheduleJob(String project, List<BuildParameter> parameters) throws IOException, ParametersRequiredException {
 		HttpClient client = getClient(getBase());
 		String st = prefs.getString(Activator.PREF_SECURITY_TOKEN + "_" + project);
-		String token = "";
+
+		List<NameValuePair> query = new ArrayList<NameValuePair>();
 		if (st != null && st.length() > 0) {
-			token = "?token=" + st;
+			query.add(new NameValuePair("token", st));
+		}
+		
+
+		String path = "/build";
+		if (parameters != null && parameters.size() > 0) {
+			path += "WithParameters";
+			
+			for (BuildParameter p : parameters) {
+				if (p.getName() != null && !"".equals(p.getName().trim())) {
+					query.add(new NameValuePair(p.getName(), p.getValue()));
+				}
+			}
 		}
 
-		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(project) + "/build" + token);
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(project) + path);
+		method.setQueryString(query.toArray(new NameValuePair[query.size()]));
 
 		try {
 			int res = client.executeMethod(method);
+			log.debug("Build schedule result: " + res);
 			if (res == HttpStatus.SC_FORBIDDEN) {
 				throw new IOException("Scheduling failed, security token required");
+			} else if (res == HttpStatus.SC_METHOD_NOT_ALLOWED) {
+				throw new ParametersRequiredException();
 			}
 			method.getResponseBodyAsStream().close();
 		} finally {
 			method.releaseConnection();
 		}
+	}
+
+	public void scheduleJob(String project) throws IOException, ParametersRequiredException {
+		scheduleJob(project, null);
 	}
 
 	public void checkValidUrl(String base, boolean authEnabled, String username, String password) throws Exception {
@@ -248,7 +272,13 @@ public class HudsonClient {
 				log.debug("Auth is enabled, username: " + username);
 				GetMethod getMethod = new GetMethod(getRelativePath(base) + "j_acegi_security_check");
 				getMethod.setQueryString("j_username=" + username + "&j_password="+password);
-				client.executeMethod(getMethod);
+				int res = client.executeMethod(getMethod);
+				if (res == 404) {
+					getMethod = new GetMethod(getRelativePath(base) + "j_security_check");
+					getMethod.setQueryString("j_username=" + username + "&j_password="+password);
+					res = client.executeMethod(getMethod);
+				}
+				log.debug("Login result for " + getMethod.getURI() + ": " + res);
 			}
 
 			return client;
@@ -269,4 +299,5 @@ public class HudsonClient {
 			return path;
 		}
 	}
+
 }

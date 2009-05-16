@@ -57,6 +57,7 @@ import dk.contix.eclipse.hudson.HudsonClient;
 import dk.contix.eclipse.hudson.Job;
 import dk.contix.eclipse.hudson.JobContentProvider;
 import dk.contix.eclipse.hudson.JobView;
+import dk.contix.eclipse.hudson.ParametersRequiredException;
 import dk.contix.eclipse.hudson.views.actions.BuildStatusAction;
 import dk.contix.eclipse.hudson.views.actions.FilterAction;
 import dk.contix.eclipse.hudson.views.actions.FilterJobAction;
@@ -274,10 +275,18 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 
 				org.eclipse.core.runtime.jobs.Job sj = new org.eclipse.core.runtime.jobs.Job("Scheduling Hudson build") {
 					protected IStatus run(IProgressMonitor monitor) {
+						final HudsonClient hudsonClient = new HudsonClient();
 						try {
-							new HudsonClient().scheduleJob(j.getName());
+							hudsonClient.scheduleJob(j.getName());
 						} catch (IOException e1) {
 							return new Status(Status.ERROR, Activator.PLUGIN_ID, 0, "Unable to schedule job", e1);
+						} catch (ParametersRequiredException e) {
+							Display.getDefault().syncExec(new Runnable() {
+								public void run() {
+									ParameterizedBuildDialog d = new ParameterizedBuildDialog(hudsonClient, j, getSite().getShell());
+									d.open();
+								}
+							});
 						}
 
 						try {
