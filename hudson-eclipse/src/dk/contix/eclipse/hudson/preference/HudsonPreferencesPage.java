@@ -6,10 +6,13 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.IntegerFieldEditor;
 import org.eclipse.jface.preference.StringButtonFieldEditor;
 import org.eclipse.jface.preference.StringFieldEditor;
+import org.eclipse.jface.window.Window;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbench;
@@ -17,6 +20,7 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import dk.contix.eclipse.hudson.Activator;
 import dk.contix.eclipse.hudson.HudsonClient;
+import dk.contix.eclipse.hudson.digger.DiggerDialog;
 
 public class HudsonPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
@@ -163,6 +167,31 @@ public class HudsonPreferencesPage extends FieldEditorPreferencePage implements 
 				setValid(false);
 			}
 			return null;
+		}
+		
+		@Override
+		protected void doFillIntoGrid(Composite parent, int numColumns) {
+			super.doFillIntoGrid(parent, numColumns);
+			
+			Button discover = new Button(parent, SWT.NONE);
+			discover.setText("Discover");
+			discover.setToolTipText("Discover running Hudson instances on the local network");
+			
+			GridData gd = new GridData();
+			gd.horizontalSpan = 3;
+			gd.horizontalAlignment = SWT.RIGHT;
+			discover.setLayoutData(gd);
+			discover.addSelectionListener(new SelectionListener() {
+				public void widgetDefaultSelected(SelectionEvent arg0) {}
+
+				public void widgetSelected(SelectionEvent arg0) {
+					DiggerDialog dialog = new DiggerDialog(getShell());
+					if (Window.OK == dialog.open() && dialog.getSelection() != null) {
+						setStringValue(dialog.getSelection());
+					}
+				}
+			});
+			
 		}
 	}
 }
