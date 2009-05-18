@@ -100,7 +100,7 @@ public class JobContentProvider implements IStructuredContentProvider {
 			}
 			check: {
 				for (int i = 0; i < newJobs.length; i++) {
-					if (newJobs[i].getStatus() == BuildStatus.FAIL || newJobs[i].getStatus() == BuildStatus.TEST_FAIL) {
+					if (newJobs[i].getStatus().getStatus() == dk.contix.eclipse.hudson.BuildStatus.Status.FAIL || newJobs[i].getStatus().getStatus() == dk.contix.eclipse.hudson.BuildStatus.Status.TEST_FAIL) {
 						if (!ignore(newJobs[i])) {
 							action.setError(newJobs[i]);
 							break check;
@@ -142,7 +142,7 @@ public class JobContentProvider implements IStructuredContentProvider {
 		}
 		for (int i = 0; i < jobs.length; i++) {
 			if (jobs[i].getName().equals(job.getName())) {
-				return job.getStatus() == BuildStatus.FAIL && jobs[i].getStatus() == BuildStatus.SUCCESS;
+				return job.getStatus().getStatus() == dk.contix.eclipse.hudson.BuildStatus.Status.FAIL && jobs[i].getStatus().getStatus() == dk.contix.eclipse.hudson.BuildStatus.Status.SUCCESS;
 			}
 		}
 		return false;
