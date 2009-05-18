@@ -1,5 +1,7 @@
 package dk.contix.eclipse.hudson;
 
+import java.util.List;
+
 import org.eclipse.swt.graphics.Image;
 
 public class BuildHealth implements Comparable<BuildHealth> {
@@ -8,6 +10,19 @@ public class BuildHealth implements Comparable<BuildHealth> {
 
 	public BuildHealth(int health) {
 		this.health = health - (health % 20);
+	}
+	
+	public static BuildHealth getLowest(List<String> values) {
+		BuildHealth last = null;
+		for (String val : values) {
+			BuildHealth h = new BuildHealth(Integer.parseInt(val));
+			if (last == null) {
+				last = h;
+			} else if (last.compareTo(h) > 0) {
+				last = h;
+			}
+		}
+		return last;
 	}
 	
 	public Image getImage() {
@@ -31,5 +46,9 @@ public class BuildHealth implements Comparable<BuildHealth> {
 	
 	public String toString() {
 		return "Health: " + health;
+	}
+	
+	public int getHealth() {
+		return health;
 	}
 }
