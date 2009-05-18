@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.core.runtime.Preferences;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.ErrorDialog;
@@ -41,14 +42,20 @@ public class ParameterizedBuildDialog extends Dialog {
 	private final HudsonClient client;
 	private final Job job;
 	
-	private List<BuildParameter> parameters = new ArrayList<BuildParameter>();
+	private List<BuildParameter> parameters;
+	private final Preferences preferences;
 
-	public ParameterizedBuildDialog(HudsonClient client, Job job, Shell parentShell) {
+	public ParameterizedBuildDialog(HudsonClient client, Job job, Shell parentShell, Preferences preferences) {
 		super(parentShell);
 		this.client = client;
 		this.job = job;
+		this.preferences = preferences;
 		
-		parameters.add(new BuildParameter("param1", "value1"));
+		parameters = BuildParameter.deserialize(preferences.getString(Activator.PREF_PARAMETERS + job.getName()));
+		if (parameters == null) {
+			parameters = new ArrayList<BuildParameter>();
+			parameters.add(new BuildParameter("param1", "value1"));
+		}
 	}
 
 	@Override
@@ -111,11 +118,12 @@ public class ParameterizedBuildDialog extends Dialog {
 		super.okPressed();
 		
 		try {
+			preferences.setValue(Activator.PREF_PARAMETERS + job.getName(), BuildParameter.serialize(parameters));
 			client.scheduleJob(job.getName(), parameters);
 		} catch (IOException e) {
 			ErrorDialog.openError(getShell(), "Unable to schedule build", "Unable to schedule build", new Status(Status.ERROR, Activator.PLUGIN_ID, 0, "Unable to schedule job", e));
 		} catch (ParametersRequiredException e) {
-			ParameterizedBuildDialog d = new ParameterizedBuildDialog(client, job, getShell());
+			ParameterizedBuildDialog d = new ParameterizedBuildDialog(client, job, getShell(), preferences);
 			d.open();
 		}
 		

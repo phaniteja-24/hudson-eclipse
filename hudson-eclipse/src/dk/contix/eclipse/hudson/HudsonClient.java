@@ -212,7 +212,9 @@ public class HudsonClient {
 		}
 
 		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(project) + path);
-		method.setQueryString(query.toArray(new NameValuePair[query.size()]));
+		if (query.size() > 0) {
+			method.setQueryString(query.toArray(new NameValuePair[query.size()]));
+		}
 
 		try {
 			int res = client.executeMethod(method);
