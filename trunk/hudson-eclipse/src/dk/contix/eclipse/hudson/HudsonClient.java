@@ -257,9 +257,12 @@ public class HudsonClient {
 
 	private String getNodeValue(Element node, String name) {
 		if (node == null) return null;
-		NodeList list = node.getElementsByTagName(name);
-		if (list.getLength() == 1) {
-			return list.item(0).getTextContent().trim();
+		NodeList nodes = node.getChildNodes();
+		for (int i = 0; i < nodes.getLength(); i++) {
+			Node n = nodes.item(i);
+			if (name.equals(n.getNodeName())) {
+				return n.getTextContent().trim();
+			}
 		}
 		return null;
 	}
