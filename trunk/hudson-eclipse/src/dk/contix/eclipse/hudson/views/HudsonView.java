@@ -289,8 +289,9 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 						} catch (ParametersRequiredException e) {
 							Display.getDefault().syncExec(new Runnable() {
 								public void run() {
-									ParameterizedBuildDialog d = new ParameterizedBuildDialog(hudsonClient, j, getSite().getShell());
+									ParameterizedBuildDialog d = new ParameterizedBuildDialog(hudsonClient, j, getSite().getShell(), Activator.getDefault().getPluginPreferences());
 									d.open();
+									Activator.getDefault().savePluginPreferences();
 								}
 							});
 						}
