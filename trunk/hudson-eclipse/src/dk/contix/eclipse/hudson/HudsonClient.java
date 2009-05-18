@@ -148,11 +148,8 @@ public class HudsonClient {
 			String url = getNodeValue(jobNode, "url");
 			String status = getNodeValue(jobNode, "color");
 			String lastBuild = getNodeValue(getChild("lastBuild", jobNode), "number");
-			String healthScore = getNodeValue(getChild("healthReport", jobNode), "score");
-			BuildHealth health = null;
-			if (healthScore != null) {
-				health = new BuildHealth(Integer.valueOf(healthScore));
-			}
+			List<String> healthScore = getNodeValues(getChild("healthReport", jobNode), "score");
+			BuildHealth health = BuildHealth.getLowest(healthScore);
 			
 			return new Job(name, url, lastBuild, BuildStatus.getStatus(status), health);
 		} finally {
@@ -253,6 +250,18 @@ public class HudsonClient {
 		return null;
 	}
 
+	private List<String> getNodeValues(Element node, String name) {
+		List<String> res = new ArrayList<String>();
+		if (node == null) return res;
+		
+		
+		NodeList list = node.getElementsByTagName(name);
+		for (int i = 0; i < list.getLength(); i++) {
+			res.add(list.item(i).getTextContent().trim());
+		}
+		return res;
+	}
+	
 	private HttpClient getClient(String base) throws IOException {
 		return getClient(base, prefs.getBoolean(Activator.PREF_USE_AUTH), prefs.getString(Activator.PREF_LOGIN), prefs.getString(Activator.PREF_PASSWORD));
 	}
