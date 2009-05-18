@@ -17,6 +17,9 @@ public enum BuildStatus {
 	}
 
 	public static BuildStatus getStatus(String code) {
+		if (code == null) {
+			return NO_BUILD;
+		}
 		code = code.toLowerCase();
 		if (code.endsWith("_anime")) {
 			code = code.substring(0, code.indexOf("_anime"));

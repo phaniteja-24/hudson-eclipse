@@ -135,6 +135,7 @@ public class HudsonClient {
 	}
 
 	private Job getJob(String name, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
+		log.debug("Getting job info for " + name);
 		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/api/xml");
 		try {
 			client.executeMethod(method);
