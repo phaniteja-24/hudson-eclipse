@@ -13,7 +13,7 @@ public class StatusFilter extends ViewerFilter {
 		Job j = (Job) element;
 		IPreferenceStore prefs = Activator.getDefault().getPreferenceStore();
 
-		switch (j.getStatus()) {
+		switch (j.getStatus().getStatus()) {
 			case SUCCESS:
 				return prefs.getBoolean(Activator.PREF_FILTER_SUCCESS);
 			case FAIL:
@@ -22,9 +22,11 @@ public class StatusFilter extends ViewerFilter {
 				return prefs.getBoolean(Activator.PREF_FILTER_FAIL_TEST);
 			case NO_BUILD:
 				return prefs.getBoolean(Activator.PREF_FILTER_NO_BUILD);
+			case DISABLED:
+				return prefs.getBoolean(Activator.PREF_FILTER_DISABLED);
 		}
 
-		return false;
+		return true;
 	}
 
 }

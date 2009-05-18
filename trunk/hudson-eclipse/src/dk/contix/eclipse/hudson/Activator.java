@@ -38,6 +38,8 @@ public class Activator extends AbstractUIPlugin {
 
 	public static final String PREF_FILTER_IGNORE_PROJECT = "filter_ignore_build";
 
+	public static final String PREF_FILTER_DISABLED = "filter_disabled";
+
 	public static final String PREF_SECURITY_TOKEN = "security_token";
 	
 	public static final String PREF_FILTER_NAME = "filter_by_name";
