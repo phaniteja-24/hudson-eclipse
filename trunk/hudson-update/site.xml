@@ -21,6 +21,9 @@
    <feature url="features/dk.contix.eclipse.hudson_1.0.6.jar" id="dk.contix.eclipse.hudson" version="1.0.6">
       <category name="dk.contix.eclipse.hudson"/>
    </feature>
+   <feature url="features/dk.contix.eclipse.hudson_1.0.7.jar" id="dk.contix.eclipse.hudson" version="1.0.7">
+      <category name="dk.contix.eclipse.hudson"/>
+   </feature>
    <category-def name="dk.contix.eclipse.hudson" label="Hudson">
       <description>
          Hudson monitor plugin
