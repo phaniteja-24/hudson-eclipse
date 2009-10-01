@@ -240,7 +240,12 @@ public class HudsonClient {
 		GetMethod method = new GetMethod(getRelativePath(base) + "api/xml");
 
 		try {
-			client.executeMethod(client.getHostConfiguration(), method);
+			int res = client.executeMethod(client.getHostConfiguration(), method);
+			if (res == HttpStatus.SC_NOT_FOUND) {
+				throw new IllegalArgumentException("No content found at " + method.getPath());
+			} else if (res == HttpStatus.SC_UNAUTHORIZED) {
+				throw new IllegalArgumentException("Basic authentication required for " + method.getPath());
+			}
 			InputStream bodyStream = method.getResponseBodyAsStream();
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(bodyStream);
 			bodyStream.close();
@@ -312,10 +317,13 @@ public class HudsonClient {
 				GetMethod getMethod = new GetMethod(getRelativePath(base) + "j_acegi_security_check");
 				getMethod.setQueryString("j_username=" + username + "&j_password="+password);
 				int res = client.executeMethod(getMethod);
-				if (res == 404) {
+				if (res == HttpStatus.SC_NOT_FOUND) {
 					getMethod = new GetMethod(getRelativePath(base) + "j_security_check");
 					getMethod.setQueryString("j_username=" + username + "&j_password="+password);
 					res = client.executeMethod(getMethod);
+				} else if (res == HttpStatus.SC_UNAUTHORIZED) {
+					client.getParams().setAuthenticationPreemptive(true);
+					client.getState().setCredentials(new AuthScope(u.getHost(), port), new UsernamePasswordCredentials(username, password));
 				}
 				log.debug("Login result for " + getMethod.getURI() + ": " + res);
 			}
