@@ -32,7 +32,7 @@ public class JobContentProvider implements IStructuredContentProvider {
 
 	private final TableViewer viewer;
 
-	private Job[] jobs;
+	private Job[] jobs = new Job[0];
 
 	private boolean updating = false;
 
@@ -76,14 +76,13 @@ public class JobContentProvider implements IStructuredContentProvider {
 		}
 
 	}
-
-	public Object[] getElements(Object inputElement) {
-		if (updating)
-			return jobs;
-
+	
+	public void refresh() {
+		if (updating) return;
+		
 		try {
 			updating = true;
-			Job[] newJobs;
+			final Job[] newJobs;
 			if (viewUrl == null) {
 				newJobs = client.getJobs();
 			} else {
@@ -102,17 +101,25 @@ public class JobContentProvider implements IStructuredContentProvider {
 				for (int i = 0; i < newJobs.length; i++) {
 					if (newJobs[i].getStatus().getStatus() == dk.contix.eclipse.hudson.BuildStatus.Status.FAIL || newJobs[i].getStatus().getStatus() == dk.contix.eclipse.hudson.BuildStatus.Status.TEST_FAIL) {
 						if (!ignore(newJobs[i])) {
-							action.setError(newJobs[i]);
+							final Job j = newJobs[i];
+							Display.getDefault().syncExec(new Runnable() {
+								public void run() {
+									action.setError(j);
+								}
+							});
 							break check;
 						}
 					}
 				}
-				action.setOk();
+				Display.getDefault().syncExec(new Runnable() {
+					public void run() {
+						action.setOk();
+					}
+				});
 			}
 
 			jobs = newJobs;
 			error = false;
-			return jobs;
 		} catch (RuntimeException e) {
 			log.error("Unable to get jobs", e);
 			action.setUnknown();
@@ -120,7 +127,7 @@ public class JobContentProvider implements IStructuredContentProvider {
 					"Unable to get status from Hudson.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
 							"Unable to communicate with Hudson", e));
 			error = true;
-			return new Object[0];
+			jobs = new Job[0];
 		} catch (Exception e) {
 			log.error("Unable to get jobs", e);
 			action.setUnknown();
@@ -130,10 +137,15 @@ public class JobContentProvider implements IStructuredContentProvider {
 								"Unable to communicate with Hudson", e));
 			}
 			error = true;
-			return new Object[0];
+			jobs = new Job[0];
 		} finally {
 			updating = false;
 		}
+
+	}
+
+	public Object[] getElements(Object inputElement) {
+		return jobs;
 	}
 
 	private boolean hasFailed(Job job) {
