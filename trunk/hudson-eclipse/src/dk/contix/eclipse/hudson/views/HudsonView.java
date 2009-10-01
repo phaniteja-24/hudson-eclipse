@@ -150,7 +150,8 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 		for (int i = 0; i < 2; i++) {
 			t.getColumn(i).pack();
 		}
-
+		
+		refreshAction.run();
 	}
 
 	private void configurePreferences() {
@@ -158,7 +159,7 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 		prefs.addPropertyChangeListener(new Preferences.IPropertyChangeListener() {
 			public void propertyChange(PropertyChangeEvent event) {
 				baseUrl = prefs.getString(Activator.PREF_BASE_URL);
-				viewer.refresh();
+				refreshAction.run();
 			}
 		});
 		baseUrl = prefs.getString(Activator.PREF_BASE_URL);
@@ -281,36 +282,36 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 
 				org.eclipse.core.runtime.jobs.Job sj = new org.eclipse.core.runtime.jobs.Job("Scheduling Hudson build") {
 					protected IStatus run(IProgressMonitor monitor) {
-						final HudsonClient hudsonClient = new HudsonClient();
+						monitor.beginTask("Scheduling job " + j.getName(), 1);
 						try {
-							hudsonClient.scheduleJob(j.getName());
-						} catch (IOException e1) {
-							return new Status(Status.ERROR, Activator.PLUGIN_ID, 0, "Unable to schedule job", e1);
-						} catch (ParametersRequiredException e) {
-							Display.getDefault().syncExec(new Runnable() {
-								public void run() {
-									ParameterizedBuildDialog d = new ParameterizedBuildDialog(hudsonClient, j, getSite().getShell(), Activator.getDefault().getPluginPreferences());
-									d.open();
-									Activator.getDefault().savePluginPreferences();
-								}
-							});
-						}
-
-						try {
-							Thread.sleep(2000);
-						} catch (InterruptedException e) {
-							Thread.currentThread().interrupt();
-						}
-						Display.getDefault().syncExec(new Runnable() {
-							public void run() {
-								viewer.refresh();
+							final HudsonClient hudsonClient = new HudsonClient();
+							try {
+								hudsonClient.scheduleJob(j.getName());
+							} catch (IOException e1) {
+								return new Status(Status.ERROR, Activator.PLUGIN_ID, 0, "Unable to schedule job", e1);
+							} catch (ParametersRequiredException e) {
+								Display.getDefault().syncExec(new Runnable() {
+									public void run() {
+										ParameterizedBuildDialog d = new ParameterizedBuildDialog(hudsonClient, j, getSite().getShell(), Activator.getDefault().getPluginPreferences());
+										d.open();
+										Activator.getDefault().savePluginPreferences();
+									}
+								});
 							}
-						});
+
+							try {
+								Thread.sleep(2000);
+							} catch (InterruptedException e) {
+								Thread.currentThread().interrupt();
+							}
+							refreshAction.run();
+						} finally {
+							monitor.done();
+						}
 						return Status.OK_STATUS;
 					}
 
 				};
-				sj.setPriority(org.eclipse.core.runtime.jobs.Job.INTERACTIVE);
 				sj.schedule();
 			}
 		};
@@ -370,15 +371,21 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 			public void run() {
 				org.eclipse.core.runtime.jobs.Job refresh = new org.eclipse.core.runtime.jobs.Job("Refreshing Hudson status") {
 					protected IStatus run(IProgressMonitor monitor) {
-						Display.getDefault().syncExec(new Runnable() {
-							public void run() {
-								viewer.refresh();
-							}
-						});
+						monitor.beginTask("Refreshing Hudson status", 1);
+						try {
+							jobContentProvider.refresh();
+							
+							Display.getDefault().asyncExec(new Runnable() {
+								public void run() {
+									viewer.refresh();
+								}
+							});
+						} finally {
+							monitor.done();
+						}
 						return Status.OK_STATUS;
 					}
 				};
-				refresh.setPriority(org.eclipse.core.runtime.jobs.Job.INTERACTIVE);
 				refresh.schedule();
 			}
 		};
@@ -495,7 +502,7 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 	}
 
 	public void refreshTableViewer() {
-		viewer.refresh();
+		refreshAction.run();
 	}
 
 	// This will remove the hudson statuslinecontribution when the view closes.
