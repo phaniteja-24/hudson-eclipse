@@ -57,7 +57,9 @@ public class ParameterizedBuildDialog extends Dialog {
 		if ((parameters == null) || (parameters.size() == 0)) {
 			defaultParams = false;
 		}
-		parameters = job.getLastBuildParameters();
+		if (job.getLastBuild() != null) {
+			parameters = job.getLastBuild().getParameters();
+		}
 		if ((parameters == null) || (parameters.size() == 0)) {
 			parameters = BuildParameter.deserialize(preferences.getString(Activator.PREF_PARAMETERS + job.getName()));
 			if (parameters == null) {
@@ -108,7 +110,7 @@ public class ParameterizedBuildDialog extends Dialog {
 				public void widgetDefaultSelected(SelectionEvent arg0) {
 				}
 				public void widgetSelected(SelectionEvent arg0) {
-					parameters = job.getLastBuildParameters();
+					parameters = job.getLastBuild().getParameters();
 					table.refresh();
 				}
 			});

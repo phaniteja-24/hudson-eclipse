@@ -10,10 +10,10 @@ public class JobLabelProvider extends LabelProvider implements ITableLabelProvid
 
 	public Image getColumnImage(Object element, int columnIndex) {
 		Job j = (Job) element;
-		if (columnIndex == 2 && j.getStatus() != null) {
+		if (columnIndex == 3 && j.getStatus() != null) {
 			return j.getStatus().getImage();
 		}
-		if (columnIndex == 3 && j.getHealth() != null) {
+		if (columnIndex == 4 && j.getHealth() != null) {
 			return j.getHealth().getImage();
 		}
 		return null;
@@ -28,7 +28,12 @@ public class JobLabelProvider extends LabelProvider implements ITableLabelProvid
 				if (j.getLastBuild() == null) {
 					return "No build";
 				}
-				return "Build " + j.getLastBuild();
+				return "#" + j.getLastBuild().getNumber();
+			case 2:
+				if (j.getLastBuild() == null) {
+					return "No build";
+				}
+				return j.getLastBuild().getTimestamp().toLocaleString();
 		}
 		return null;
 	}
