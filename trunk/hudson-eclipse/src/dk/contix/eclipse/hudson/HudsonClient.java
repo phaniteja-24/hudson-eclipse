@@ -86,8 +86,8 @@ public class HudsonClient {
 					res[i] = getJob(name, client);
 				} else {
 					String url = getNodeValue(jobNode, "url");
-				
-					res[i] = new Job(name, url, last, BuildStatus.getStatus(getNodeValue(jobNode, "color")), null);
+
+					res[i] = new Job(name, url, last, BuildStatus.getStatus(getNodeValue(jobNode, "color")), null, null, null);
 				}
 			}
 
@@ -151,8 +151,73 @@ public class HudsonClient {
 			List<String> healthScore = getHealthScore(jobNode);
 			
 			BuildHealth health = BuildHealth.getLowest(healthScore);
-			
-			return new Job(name, url, lastBuild, BuildStatus.getStatus(status), health);
+
+			List<BuildParameter> lastBuildParameters = new ArrayList<BuildParameter>();
+
+			List<BuildParameter> defaultParameters = new ArrayList<BuildParameter>();
+
+			defaultParameters = getDefaultParameters(name,client);
+
+			if (lastBuild != null)
+				lastBuildParameters = getLastBuildParameters(name,lastBuild,client);
+
+			return new Job(name, url, lastBuild, BuildStatus.getStatus(status), health, defaultParameters, lastBuildParameters);
+		} finally {
+			method.releaseConnection();
+		}
+	}
+
+	private List<BuildParameter> getDefaultParameters(String name, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
+		log.debug("Getting deafult parameter info for " + name);
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/api/xml");
+		try {
+			client.executeMethod(method);
+			InputStream bodyStream = method.getResponseBodyAsStream();
+			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(bodyStream);
+			bodyStream.close();
+
+			List<BuildParameter> parameters = new ArrayList<BuildParameter>();
+
+			Element root = doc.getDocumentElement();
+			NodeList actionNodes = root.getElementsByTagName("action");
+
+			for (int i = 0; i < actionNodes.getLength(); i++) {
+				Element actionNode = (Element) actionNodes.item(i);
+				NodeList parameterNodes = actionNode.getElementsByTagName("parameterDefinition");
+				for (int j = 0; j < parameterNodes.getLength(); j++) {
+					Element parameterNode = (Element) parameterNodes.item(j);
+					Element valueNode = (Element) parameterNode.getElementsByTagName("defaultParameterValue").item(0);
+					parameters.add(new BuildParameter(getNodeValue(parameterNode, "name"),getNodeValue(valueNode, "value"),getNodeValue(parameterNode, "description")));
+				}
+			}
+			return parameters;
+		} finally {
+			method.releaseConnection();
+		}
+	}
+	private List<BuildParameter> getLastBuildParameters(String name, String lastBuild, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
+		log.debug("Getting parameter info for " + name + "/" + lastBuild);
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/" + lastBuild + "/api/xml");
+		try {
+			client.executeMethod(method);
+			InputStream bodyStream = method.getResponseBodyAsStream();
+			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(bodyStream);
+			bodyStream.close();
+
+			List<BuildParameter> parameters = new ArrayList<BuildParameter>();
+
+			Element root = doc.getDocumentElement();
+			NodeList actionNodes = root.getElementsByTagName("action");
+
+			for (int i = 0; i < actionNodes.getLength(); i++) {
+				Element actionNode = (Element) actionNodes.item(i);
+				NodeList parameterNodes = actionNode.getElementsByTagName("parameter");
+				for (int j = 0; j < parameterNodes.getLength(); j++) {
+					Element parameterNode = (Element) parameterNodes.item(j);
+					parameters.add(new BuildParameter(getNodeValue(parameterNode, "name"),getNodeValue(parameterNode, "value")));
+				}
+			}
+			return parameters;
 		} finally {
 			method.releaseConnection();
 		}
@@ -317,6 +382,7 @@ public class HudsonClient {
 				GetMethod getMethod = new GetMethod(getRelativePath(base) + "j_acegi_security_check");
 				getMethod.setQueryString("j_username=" + username + "&j_password="+password);
 				int res = client.executeMethod(getMethod);
+				getMethod.releaseConnection();
 				if (res == HttpStatus.SC_NOT_FOUND) {
 					getMethod = new GetMethod(getRelativePath(base) + "j_security_check");
 					getMethod.setQueryString("j_username=" + username + "&j_password="+password);

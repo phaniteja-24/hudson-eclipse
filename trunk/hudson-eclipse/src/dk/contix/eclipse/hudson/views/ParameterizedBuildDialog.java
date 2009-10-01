@@ -43,6 +43,7 @@ public class ParameterizedBuildDialog extends Dialog {
 	private final Job job;
 	
 	private List<BuildParameter> parameters;
+	private boolean defaultParams;
 	private final Preferences preferences;
 
 	public ParameterizedBuildDialog(HudsonClient client, Job job, Shell parentShell, Preferences preferences) {
@@ -50,11 +51,19 @@ public class ParameterizedBuildDialog extends Dialog {
 		this.client = client;
 		this.job = job;
 		this.preferences = preferences;
-		
-		parameters = BuildParameter.deserialize(preferences.getString(Activator.PREF_PARAMETERS + job.getName()));
-		if (parameters == null) {
-			parameters = new ArrayList<BuildParameter>();
-			parameters.add(new BuildParameter("param1", "value1"));
+		this.defaultParams = true;
+
+		parameters = job.getDefaultParameters();
+		if ((parameters == null) || (parameters.size() == 0)) {
+			defaultParams = false;
+		}
+		parameters = job.getLastBuildParameters();
+		if ((parameters == null) || (parameters.size() == 0)) {
+			parameters = BuildParameter.deserialize(preferences.getString(Activator.PREF_PARAMETERS + job.getName()));
+			if (parameters == null) {
+				parameters = new ArrayList<BuildParameter>();
+				parameters.add(new BuildParameter("param1", "value1"));
+			}
 		}
 	}
 
@@ -81,7 +90,30 @@ public class ParameterizedBuildDialog extends Dialog {
 
 		t.setHeaderVisible(true);
 		table.setColumnProperties(new String[] { "parameter", "value"});
-		
+
+		if (defaultParams) {
+			Button def = new Button(createDialogArea, SWT.NONE);
+			def.setText("Load default parameters");
+			def.addSelectionListener(new SelectionListener() {
+				public void widgetDefaultSelected(SelectionEvent arg0) {
+				}
+				public void widgetSelected(SelectionEvent arg0) {
+					parameters = job.getDefaultParameters();
+					table.refresh();
+				}
+			});
+			Button last = new Button(createDialogArea, SWT.NONE);
+			last.setText("Load last build parameters");
+			last.addSelectionListener(new SelectionListener() {
+				public void widgetDefaultSelected(SelectionEvent arg0) {
+				}
+				public void widgetSelected(SelectionEvent arg0) {
+					parameters = job.getLastBuildParameters();
+					table.refresh();
+				}
+			});
+		}
+
 		Button add = new Button(createDialogArea, SWT.NONE);
 		add.setText("Add parameter");
 		add.addSelectionListener(new SelectionListener() {

@@ -1,5 +1,7 @@
 package dk.contix.eclipse.hudson;
 
+import java.util.List;
+
 /**
  * Representation of a Hudson job.
  * 
@@ -13,14 +15,18 @@ public class Job {
 	private String lastBuild;
 	private BuildStatus status;
 	private final BuildHealth health;
-	
-	public Job(String name, String url, String lastBuild, BuildStatus status, BuildHealth health) {
+	private List<BuildParameter> defaultParameters;
+	private List<BuildParameter> lastBuildParameters;
+
+	public Job(String name, String url, String lastBuild, BuildStatus status, BuildHealth health, List<BuildParameter> defaultParameters, List<BuildParameter> lastBuildParameters) {
 		super();
 		this.name = name;
 		this.url = url;
 		this.lastBuild = lastBuild;
 		this.status = status;
 		this.health = health;
+		this.defaultParameters = defaultParameters;
+		this.lastBuildParameters = lastBuildParameters;
 	}
 	public BuildStatus getStatus() {
 		return status;
@@ -36,6 +42,19 @@ public class Job {
 	}
 	public BuildHealth getHealth() {
 		return health;
+	}
+
+	public List<BuildParameter> getDefaultParameters() {
+		return defaultParameters;
+	}
+	public void setDefaultParameters(List<BuildParameter> defaultParameters) {
+		this.defaultParameters = defaultParameters;
+	}
+	public List<BuildParameter> getLastBuildParameters() {
+		return lastBuildParameters;
+	}
+	public void setLastBuildParameters(List<BuildParameter> lastBuildParameters) {
+		this.lastBuildParameters = lastBuildParameters;
 	}
 
 	public int hashCode() {
