@@ -33,13 +33,23 @@ public class JobSorter extends ViewerSorter implements Listener {
 		} else if ("Build".equals(current)) {
 			if (j1.getLastBuild() == null) {
 				res = -1;
+			} else if (j2.getLastBuild() == null) {
+				res = 1;
 			} else {
-				res = j1.getLastBuild().compareTo(j2.getLastBuild());
+				res = Long.valueOf(j1.getLastBuild().getNumber()).compareTo(Long.valueOf(j2.getLastBuild().getNumber()));
 			}
 		} else if ("Status".equals(current)) {
 			res = getComparator().compare(j1.getStatus(), j2.getStatus());
 		} else if ("Health".equals(current)) {
 			res = getComparator().compare(j1.getHealth(), j2.getHealth());
+		} else if ("Date and Time".equals(current)) {
+			if (j1.getLastBuild() == null) {
+				res = -1;
+			} else if (j2.getLastBuild() == null) {
+				res = 1;
+			} else {
+				res = j1.getLastBuild().getTimestamp().compareTo(j2.getLastBuild().getTimestamp());
+			}
 		}
 
 		if (direction == SWT.DOWN) {

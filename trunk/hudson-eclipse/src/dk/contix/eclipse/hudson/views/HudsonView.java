@@ -114,6 +114,10 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 		col.addListener(SWT.Selection, sorter);
 
 		col = new TableColumn(t, SWT.LEFT);
+		col.setText("Date and Time");
+		col.addListener(SWT.Selection, sorter);
+
+		col = new TableColumn(t, SWT.LEFT);
 		col.setText("Status");
 		col.setWidth(60);
 		col.addListener(SWT.Selection, sorter);
@@ -147,7 +151,7 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 			slmParent.add(buildStatusAction);
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 3; i++) {
 			t.getColumn(i).pack();
 		}
 		
@@ -203,7 +207,7 @@ public class HudsonView extends ViewPart implements PropertyChangeListener {
 			public void propertyChange(
 					org.eclipse.jface.util.PropertyChangeEvent event) {
 				if(nameText!=null && nameText.isDisposed()==false)
-					nameText.setEnabled(((Boolean)event.getNewValue()).booleanValue());				
+					nameText.setEnabled(((Boolean)event.getNewValue()).booleanValue());
 			}
 		});
 		filtermenu.add(nameFilterAction);		

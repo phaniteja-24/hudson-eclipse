@@ -12,13 +12,12 @@ public class Job {
 	
 	private String name;
 	private String url;
-	private String lastBuild;
+	private Build lastBuild;
 	private BuildStatus status;
 	private final BuildHealth health;
 	private List<BuildParameter> defaultParameters;
-	private List<BuildParameter> lastBuildParameters;
 
-	public Job(String name, String url, String lastBuild, BuildStatus status, BuildHealth health, List<BuildParameter> defaultParameters, List<BuildParameter> lastBuildParameters) {
+	public Job(String name, String url, Build lastBuild, BuildStatus status, BuildHealth health, List<BuildParameter> defaultParameters) {
 		super();
 		this.name = name;
 		this.url = url;
@@ -26,7 +25,6 @@ public class Job {
 		this.status = status;
 		this.health = health;
 		this.defaultParameters = defaultParameters;
-		this.lastBuildParameters = lastBuildParameters;
 	}
 	public BuildStatus getStatus() {
 		return status;
@@ -37,7 +35,7 @@ public class Job {
 	public String getUrl() {
 		return url;
 	}
-	public String getLastBuild() {
+	public Build getLastBuild() {
 		return lastBuild;
 	}
 	public BuildHealth getHealth() {
@@ -49,12 +47,6 @@ public class Job {
 	}
 	public void setDefaultParameters(List<BuildParameter> defaultParameters) {
 		this.defaultParameters = defaultParameters;
-	}
-	public List<BuildParameter> getLastBuildParameters() {
-		return lastBuildParameters;
-	}
-	public void setLastBuildParameters(List<BuildParameter> lastBuildParameters) {
-		this.lastBuildParameters = lastBuildParameters;
 	}
 
 	public int hashCode() {
@@ -76,16 +68,6 @@ public class Job {
 		if (getClass() != obj.getClass())
 			return false;
 		final Job other = (Job) obj;
-		if (status == null) {
-			if (other.status != null)
-				return false;
-		} else if (status != other.status)
-			return false;
-		if (lastBuild == null) {
-			if (other.lastBuild != null)
-				return false;
-		} else if (!lastBuild.equals(other.lastBuild))
-			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
@@ -96,6 +78,11 @@ public class Job {
 				return false;
 		} else if (!url.equals(other.url))
 			return false;
+		if (lastBuild == null) {
+			if (other.lastBuild != null)
+				return false;
+		} else if (!lastBuild.equals(other.lastBuild))
+			return false;
 		if (health == null) {
 			if (other.health != null)
 				return false;
@@ -103,6 +90,4 @@ public class Job {
 			return false;
 		return true;
 	}
-	
-	
 }

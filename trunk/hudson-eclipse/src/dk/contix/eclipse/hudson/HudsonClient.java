@@ -85,9 +85,10 @@ public class HudsonClient {
 					// we're probably in a newer version of hudson, so we get the build number separately
 					res[i] = getJob(name, client);
 				} else {
+					Build build = new Build(last, null, null, null, 0, null);
 					String url = getNodeValue(jobNode, "url");
 
-					res[i] = new Job(name, url, last, BuildStatus.getStatus(getNodeValue(jobNode, "color")), null, null, null);
+					res[i] = new Job(name, url, build, BuildStatus.getStatus(getNodeValue(jobNode, "color")), null, null);
 				}
 			}
 
@@ -136,7 +137,7 @@ public class HudsonClient {
 
 	private Job getJob(String name, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
 		log.debug("Getting job info for " + name);
-		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/api/xml");
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/api/xml?depth=0");
 		try {
 			client.executeMethod(method);
 			InputStream bodyStream = method.getResponseBodyAsStream();
@@ -145,23 +146,26 @@ public class HudsonClient {
 			
 			Element jobNode = doc.getDocumentElement();
 
-			String url = getNodeValue(jobNode, "url");
-			String status = getNodeValue(jobNode, "color");
-			String lastBuild = getNodeValue(getChild("lastBuild", jobNode), "number");
+			String jobUrl = getNodeValue(jobNode, "url");
+			String jobStatus = getNodeValue(jobNode, "color");
+
+			String lastBuildNumber = getNodeValue(getChild("lastBuild", jobNode), "number");
+			String lastBuildUrl = getNodeValue(getChild("lastBuild", jobNode), "url");
+			
 			List<String> healthScore = getHealthScore(jobNode);
 			
 			BuildHealth health = BuildHealth.getLowest(healthScore);
 
-			List<BuildParameter> lastBuildParameters = new ArrayList<BuildParameter>();
 
-			List<BuildParameter> defaultParameters = new ArrayList<BuildParameter>();
+			List<BuildParameter> defaultParameters = getDefaultParameters(name, client);
 
-			defaultParameters = getDefaultParameters(name,client);
-
-			if (lastBuild != null)
-				lastBuildParameters = getLastBuildParameters(name,lastBuild,client);
-
-			return new Job(name, url, lastBuild, BuildStatus.getStatus(status), health, defaultParameters, lastBuildParameters);
+			Build lastBuild = null;
+			if (lastBuildNumber != null) {
+				lastBuild = getLastBuild(name, lastBuildNumber, lastBuildUrl, client);
+			} else {
+				log.debug("ERROR: last build not available for Job '" + name + "'");
+			}
+			return new Job(name, jobUrl, lastBuild, BuildStatus.getStatus(jobStatus), health, defaultParameters);
 		} finally {
 			method.releaseConnection();
 		}
@@ -195,34 +199,47 @@ public class HudsonClient {
 			method.releaseConnection();
 		}
 	}
-	private List<BuildParameter> getLastBuildParameters(String name, String lastBuild, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
-		log.debug("Getting parameter info for " + name + "/" + lastBuild);
-		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/" + lastBuild + "/api/xml");
+	
+	private Build getLastBuild(String name, String number, String url, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
+		log.debug("Getting build info for Job '" + name + "' and Build '" + number + "'");
+		GetMethod method = new GetMethod(getRelativePath(getBase()) + "job/" + encode(name) + "/" + number + "/api/xml");
 		try {
 			client.executeMethod(method);
 			InputStream bodyStream = method.getResponseBodyAsStream();
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(bodyStream);
 			bodyStream.close();
 
-			List<BuildParameter> parameters = new ArrayList<BuildParameter>();
-
 			Element root = doc.getDocumentElement();
-			NodeList actionNodes = root.getElementsByTagName("action");
 
-			for (int i = 0; i < actionNodes.getLength(); i++) {
-				Element actionNode = (Element) actionNodes.item(i);
-				NodeList parameterNodes = actionNode.getElementsByTagName("parameter");
-				for (int j = 0; j < parameterNodes.getLength(); j++) {
-					Element parameterNode = (Element) parameterNodes.item(j);
-					parameters.add(new BuildParameter(getNodeValue(parameterNode, "name"),getNodeValue(parameterNode, "value")));
-				}
-			}
-			return parameters;
+			String status = getNodeValue(root, "status");
+			String id = getNodeValue(root, "id");
+			String timestamp = getNodeValue(root, "timestamp");
+
+			List<BuildParameter> parameters = getLastBuildParameters(name, number, root, client);
+
+			return new Build(number, url, status, id, Long.valueOf(timestamp).longValue(), parameters);
 		} finally {
 			method.releaseConnection();
 		}
 	}
-	
+
+	private List<BuildParameter> getLastBuildParameters(String name, String number, Element root, HttpClient client) throws IOException, SAXException, ParserConfigurationException {
+		log.debug("Getting parameter info for Job '" + name + "' and Build '" + number + "'");
+		List<BuildParameter> parameters = new ArrayList<BuildParameter>();
+
+		NodeList actionNodes = root.getElementsByTagName("action");
+
+		for (int i = 0; i < actionNodes.getLength(); i++) {
+			Element actionNode = (Element) actionNodes.item(i);
+			NodeList parameterNodes = actionNode.getElementsByTagName("parameter");
+			for (int j = 0; j < parameterNodes.getLength(); j++) {
+				Element parameterNode = (Element) parameterNodes.item(j);
+				parameters.add(new BuildParameter(getNodeValue(parameterNode, "name"),getNodeValue(parameterNode, "value")));
+			}
+		}
+		return parameters;
+	}
+
 	private List<String> getHealthScore(Element jobNode) {
 		List<String> healthScore = new ArrayList<String>();
 		NodeList nodes = jobNode.getChildNodes();
