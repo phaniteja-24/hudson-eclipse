@@ -2,7 +2,7 @@
 <feature
       id="dk.contix.eclipse.hudson"
       label="Hudson"
-      version="1.0.8"
+      version="1.0.9"
       provider-name="Contix Technologies">
 
    <description url="http://code.google.com/p/hudson-eclipse/">
