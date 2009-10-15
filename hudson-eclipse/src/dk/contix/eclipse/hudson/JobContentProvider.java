@@ -122,7 +122,11 @@ public class JobContentProvider implements IStructuredContentProvider {
 			error = false;
 		} catch (RuntimeException e) {
 			log.error("Unable to get jobs", e);
-			action.setUnknown();
+			Display.getDefault().syncExec(new Runnable() {
+				public void run() {
+					action.setUnknown();
+				}
+			});
 			ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
 					"Unable to get status from Hudson.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
 							"Unable to communicate with Hudson", e));
@@ -130,7 +134,11 @@ public class JobContentProvider implements IStructuredContentProvider {
 			jobs = new Job[0];
 		} catch (Exception e) {
 			log.error("Unable to get jobs", e);
-			action.setUnknown();
+			Display.getDefault().syncExec(new Runnable() {
+				public void run() {
+					action.setUnknown();
+				}
+			});
 			if (!error && prefs.getBoolean(Activator.PREF_POPUP_ON_CONNECTION_ERROR)) {
 				ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
 						"Unable to get status from Hudson. Check that the base url is configured correctly under preferences.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
