@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="dk.contix.eclipse.hudson"
-      label="Hudson"
+      label="Hudson Eclipse"
       version="1.0.10"
       provider-name="Contix Technologies">
 
