@@ -34,7 +34,7 @@ THE SOFTWARE.
    </license>
 
    <url>
-      <update url="http://hudson-eclipse.googlecode.com/svn/trunk/hudson-update"/>
+      <update label="Hudson Eclipse" url="http://hudson-eclipse.googlecode.com/svn/trunk/hudson-update"/>
    </url>
 
    <requires>
