@@ -2,7 +2,7 @@
 <feature
       id="dk.contix.eclipse.hudson"
       label="Hudson"
-      version="1.0.9"
+      version="1.0.10"
       provider-name="Contix Technologies">
 
    <description url="http://code.google.com/p/hudson-eclipse/">
@@ -42,6 +42,7 @@ THE SOFTWARE.
       <import plugin="org.eclipse.core.runtime"/>
       <import plugin="org.eclipse.ui.forms"/>
       <import plugin="org.eclipse.ui.workbench.texteditor"/>
+      <import plugin="org.eclipse.core.net"/>
    </requires>
 
    <plugin
