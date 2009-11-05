@@ -52,6 +52,7 @@ public class JobContentProvider implements IStructuredContentProvider {
 				reloadUpdateJob();
 			}
 		});
+		reloadUpdateJob();
 	}
 
 	private void reloadUpdateJob() {
@@ -62,13 +63,19 @@ public class JobContentProvider implements IStructuredContentProvider {
 		if (prefs.getBoolean(Activator.PREF_AUTO_UPDATE)) {
 			updateJob = new org.eclipse.core.runtime.jobs.Job("Fetch Hudson status") {
 				protected IStatus run(IProgressMonitor monitor) {
-					Display.getDefault().asyncExec(new Runnable() {
-						public void run() {
-							viewer.refresh();
-							updateJob.schedule(prefs.getInt(Activator.PREF_UPDATE_INTERVAL) * 1000);
-						}
-					});
-					return Status.OK_STATUS;
+					monitor.beginTask("Refreshing Hudson status", 1);
+					refresh();
+					try {
+						Display.getDefault().asyncExec(new Runnable() {
+							public void run() {
+								viewer.refresh();
+								updateJob.schedule(prefs.getInt(Activator.PREF_UPDATE_INTERVAL) * 1000);
+							}
+						});
+						return Status.OK_STATUS;
+					} finally {
+						monitor.done();
+					}
 				}
 			};
 			updateJob.setPriority(org.eclipse.core.runtime.jobs.Job.DECORATE);
