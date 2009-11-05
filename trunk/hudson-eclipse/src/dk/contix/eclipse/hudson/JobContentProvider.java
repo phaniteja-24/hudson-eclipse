@@ -92,7 +92,12 @@ public class JobContentProvider implements IStructuredContentProvider {
 			if (jobs != null && prefs.getBoolean(Activator.PREF_POPUP_ON_ERROR)) {
 				for (int i = 0; i < newJobs.length; i++) {
 					if (hasFailed(newJobs[i])) {
-						MessageDialog.openWarning(viewer.getControl().getShell(), "Hudson build failed", "Hudson build failed for " + newJobs[i].getName());
+						final Job job = newJobs[i];
+						Display.getDefault().syncExec(new Runnable() {
+							public void run() {
+								MessageDialog.openWarning(viewer.getControl().getShell(), "Hudson build failed", "Hudson build failed for " + job.getName());
+							}
+						});
 						break;
 					}
 				}
@@ -120,30 +125,32 @@ public class JobContentProvider implements IStructuredContentProvider {
 
 			jobs = newJobs;
 			error = false;
-		} catch (RuntimeException e) {
+		} catch (final RuntimeException e) {
 			log.error("Unable to get jobs", e);
 			Display.getDefault().syncExec(new Runnable() {
 				public void run() {
 					action.setUnknown();
+					ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
+							"Unable to get status from Hudson.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
+									"Unable to communicate with Hudson", e));
 				}
 			});
-			ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
-					"Unable to get status from Hudson.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
-							"Unable to communicate with Hudson", e));
+			
 			error = true;
 			jobs = new Job[0];
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			log.error("Unable to get jobs", e);
 			Display.getDefault().syncExec(new Runnable() {
 				public void run() {
 					action.setUnknown();
+					if (!error && prefs.getBoolean(Activator.PREF_POPUP_ON_CONNECTION_ERROR)) {
+						ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
+								"Unable to get status from Hudson. Check that the base url is configured correctly under preferences.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
+										"Unable to communicate with Hudson", e));
+					}
 				}
 			});
-			if (!error && prefs.getBoolean(Activator.PREF_POPUP_ON_CONNECTION_ERROR)) {
-				ErrorDialog.openError(viewer.getControl().getShell(), "Unable to get Hudson status",
-						"Unable to get status from Hudson. Check that the base url is configured correctly under preferences.", new Status(Status.ERROR, Activator.PLUGIN_ID, 0,
-								"Unable to communicate with Hudson", e));
-			}
+			
 			error = true;
 			jobs = new Job[0];
 		} finally {
